@@ -30,6 +30,6 @@
 - 專案依賴 Puppeteer 執行本地端測試（`node run_playtest.js`），執行前請確認已安裝 Chrome。
 
 ## 🕐 最後更新
-- 時間：2026-10-22 14:56
+- 時間：2026-10-22 15:10
 - 更新者：Antigravity @ LAPTOP-C73KGKMS
-- Git push：✅ 已推（Commit: `5fac028`，GitHub Pages: `linjingsiou-byte/fraction-bakery-game-4`）
+- Git push：待推至 GitHub Pages (`fraction-bakery-game-4`)
