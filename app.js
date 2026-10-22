@@ -128,6 +128,61 @@ const AudioSynth = {
           osc.stop(chordTime + 0.6);
         });
       });
+    } else if (type === 'buzzerOpen') {
+      this.playBuzzerOpen();
+    } else if (type === 'softClick') {
+      this.playSoftClick();
+    }
+  },
+
+  // 搶答/競速開放警示音 (清脆叮咚三連音：E5 -> B5 -> E6)
+  playBuzzerOpen() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const notes = [659.25, 987.77, 1318.51];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+        gain.gain.setValueAtTime(0.16, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.35);
+      });
+    } catch (e) {
+      console.warn("Failed to play audio", e);
+    }
+  },
+
+  // 讀題冷卻期偷按無效輕音
+  playSoftClick() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(260, now);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (e) {
+      console.warn("Failed to play audio", e);
     }
   }
 };
@@ -947,6 +1002,9 @@ const gameEngine = {
   
   switchScreen(screenId) {
     VoiceManager.stop();
+    if (typeof duelEngine !== 'undefined' && duelEngine.clearBattleThinkingTimer) {
+      duelEngine.clearBattleThinkingTimer();
+    }
     
     // Remove active from all screens
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1490,9 +1548,131 @@ const duelEngine = {
   // Choice states
   p1Choice: null,
   p2Choice: null,
+
+  // Mode B 思考緩衝期計時器與狀態
+  battleThinkingTimer: null,
+  isBattleThinkingPhase: false,
   
   init() {
-    // No-op
+    // 綁定雙方面板思考緩衝期防偷跑點擊攔截器
+    const attachEarlyInterceptor = (playerNum) => {
+      const panel = document.getElementById(`player${playerNum}-panel`);
+      if (!panel) return;
+      panel.addEventListener('pointerdown', (e) => {
+        if (this.isBattleThinkingPhase) {
+          if (e.target.closest('.duel-input-area, .btn-primary-small, .btn-choice, .btn-comparison-sign, input')) {
+            e.preventDefault();
+            e.stopPropagation();
+            AudioSynth.playSoftClick();
+            this.triggerBattleSideShake(playerNum);
+          }
+        }
+      }, true);
+    };
+    attachEarlyInterceptor(1);
+    attachEarlyInterceptor(2);
+  },
+
+  clearBattleThinkingTimer() {
+    if (this.battleThinkingTimer) {
+      clearInterval(this.battleThinkingTimer);
+      this.battleThinkingTimer = null;
+    }
+  },
+
+  startBattleThinkingCountdown(durationSec = 3.0) {
+    this.clearBattleThinkingTimer();
+    this.isBattleThinkingPhase = true;
+
+    const p1Panel = document.getElementById('player1-panel');
+    const p2Panel = document.getElementById('player2-panel');
+    if (p1Panel) p1Panel.classList.add('cooling');
+    if (p2Panel) p2Panel.classList.add('cooling');
+
+    const statusBar = document.getElementById('battle-status-bar');
+    const statusIcon = document.getElementById('battle-status-icon');
+    const statusText = document.getElementById('battle-status-text');
+    const progressFill = document.getElementById('battle-status-progress-fill');
+
+    if (statusBar) {
+      statusBar.classList.remove('hidden', 'ready');
+      if (statusIcon) statusIcon.textContent = '⏳';
+      if (statusText) {
+        statusText.innerHTML = `仔細看題思考中... <strong id="battle-status-timer">${durationSec.toFixed(1)}</strong> 秒後開放作答！`;
+      }
+      if (progressFill) {
+        progressFill.style.transition = 'none';
+        progressFill.style.width = '0%';
+      }
+    }
+
+    const totalMs = durationSec * 1000;
+    const intervalMs = 100;
+    let elapsedMs = 0;
+
+    this.battleThinkingTimer = setInterval(() => {
+      elapsedMs += intervalMs;
+      const remainingSec = Math.max(0, (totalMs - elapsedMs) / 1000);
+      const percent = Math.min(100, (elapsedMs / totalMs) * 100);
+
+      const timerEl = document.getElementById('battle-status-timer');
+      if (timerEl) {
+        timerEl.textContent = remainingSec.toFixed(1);
+      }
+      if (progressFill) {
+        progressFill.style.transition = 'width 0.1s linear';
+        progressFill.style.width = `${percent}%`;
+      }
+
+      if (elapsedMs >= totalMs) {
+        this.clearBattleThinkingTimer();
+        this.onBattleThinkingComplete();
+      }
+    }, intervalMs);
+  },
+
+  onBattleThinkingComplete() {
+    this.clearBattleThinkingTimer();
+    this.isBattleThinkingPhase = false;
+
+    AudioSynth.playBuzzerOpen();
+
+    const p1Panel = document.getElementById('player1-panel');
+    const p2Panel = document.getElementById('player2-panel');
+    if (p1Panel) p1Panel.classList.remove('cooling');
+    if (p2Panel) p2Panel.classList.remove('cooling');
+
+    const statusBar = document.getElementById('battle-status-bar');
+    const statusIcon = document.getElementById('battle-status-icon');
+    const statusText = document.getElementById('battle-status-text');
+
+    if (statusBar) {
+      statusBar.className = 'battle-status-bar ready';
+      if (statusIcon) statusIcon.textContent = '⚡';
+      if (statusText) {
+        statusText.innerHTML = '⚡ <strong>競速開始！</strong>快動手計算並提交配方！';
+      }
+    }
+  },
+
+  triggerBattleSideShake(playerNum) {
+    const panel = document.getElementById(`player${playerNum}-panel`);
+    if (panel) {
+      panel.classList.remove('shake-warn');
+      void panel.offsetWidth; // Force reflow
+      panel.classList.add('shake-warn');
+    }
+    const feedbackEl = document.getElementById(`p${playerNum}-feedback`);
+    if (feedbackEl) {
+      feedbackEl.classList.remove('hidden', 'correct');
+      feedbackEl.className = 'duel-feedback incorrect';
+      feedbackEl.innerText = "⏳ 請先讀題思考喔！倒數結束後才開放作答！";
+      setTimeout(() => {
+        if (this.isBattleThinkingPhase && feedbackEl.innerText.includes("請先讀題思考")) {
+          feedbackEl.classList.add('hidden');
+        }
+      }, 1500);
+    }
   },
   
   selectLevel(level) {
@@ -1527,6 +1707,9 @@ const duelEngine = {
     // Load first question for both
     this.generatePlayerQuestion(1);
     this.generatePlayerQuestion(2);
+
+    // 啟動 3.0 秒讀題思考緩衝期倒數
+    this.startBattleThinkingCountdown(3.0);
   },
   
   updateScoresUI() {
@@ -1695,6 +1878,12 @@ const duelEngine = {
   },
   
   submitPlayerAnswer(playerNum) {
+    if (this.isBattleThinkingPhase) {
+      AudioSynth.playSoftClick();
+      this.triggerBattleSideShake(playerNum);
+      return;
+    }
+
     const q = playerNum === 1 ? this.p1Question : this.p2Question;
     if (!q) return;
     
@@ -2144,6 +2333,18 @@ const playtestEngine = {
     this.assert(gameEngine.currentScreen === 'duel', "成功進入雙人對決大廳", "未切換至對決畫面");
     this.assert(duelEngine.winLimit === 5, "成功設定對決烘焙目標題數為 5 題", `目標題數錯誤，得到 ${duelEngine.winLimit}`);
     
+    // Mode B: 驗證 3.0 秒讀題思考緩衝期與防偷跑機制
+    this.assert(duelEngine.isBattleThinkingPhase === true, "成功啟動 3.0 秒讀題思考緩衝期倒數", "未進入讀題思考階段");
+
+    // 模擬在思考緩衝期偷按：驗證作答被阻擋且分數不變
+    const p1InitialScore = duelEngine.p1Score;
+    duelEngine.submitPlayerAnswer(1);
+    this.assert(duelEngine.p1Score === p1InitialScore, "思考緩衝期內偷按提交被成功阻擋（防偷跑機制生效）", "思考期偷按未被成功阻擋");
+
+    // 倒數完成，模擬開搶解除鎖定
+    duelEngine.onBattleThinkingComplete();
+    this.assert(duelEngine.isBattleThinkingPhase === false, "倒數結束成功解除鎖定並進入開搶競速階段", "未能順利解除鎖定");
+
     // Simulate player turns
     // P1 wins: P1 gets 5 correct, P2 gets 1 correct.
     for (let round = 1; round <= 5; round++) {
