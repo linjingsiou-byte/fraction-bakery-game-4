@@ -1549,6 +1549,13 @@ const duelEngine = {
   p1Choice: null,
   p2Choice: null,
 
+  // Active inputs for virtual keypad
+  p1ActiveCell: null,
+  p2ActiveCell: null,
+
+  // Duel Mode: 'round' (同步回合爭奪制) or 'race' (自由分流競速制)
+  duelMode: 'round',
+
   // Mode B 思考緩衝期計時器與狀態
   battleThinkingTimer: null,
   isBattleThinkingPhase: false,
@@ -1560,7 +1567,7 @@ const duelEngine = {
       if (!panel) return;
       panel.addEventListener('pointerdown', (e) => {
         if (this.isBattleThinkingPhase) {
-          if (e.target.closest('.duel-input-area, .btn-primary-small, .btn-choice, .btn-comparison-sign, input')) {
+          if (e.target.closest('.duel-input-area, .btn-primary-small, .btn-choice, .btn-comparison-sign, .duel-cell, .duel-key-btn, input')) {
             e.preventDefault();
             e.stopPropagation();
             AudioSynth.playSoftClick();
@@ -1692,8 +1699,16 @@ const duelEngine = {
     this.p2Score = 0;
     
     const limitSelect = document.getElementById('duel-win-limit');
-    this.winLimit = parseInt(limitSelect.value) || 5;
+    this.winLimit = parseInt(limitSelect?.value) || 5;
     document.getElementById('duel-target-score').innerText = this.winLimit;
+
+    const modeSelect = document.getElementById('duel-mode-select');
+    this.duelMode = modeSelect ? modeSelect.value : 'round';
+
+    const titleEl = document.getElementById('duel-title-display');
+    if (titleEl) {
+      titleEl.innerText = this.duelMode === 'round' ? '🍰 雙人烘焙對決賽 (同步回合爭奪制) 🍰' : '🍰 雙人烘焙對決賽 (自由分流競速制) 🍰';
+    }
     
     // Render empty score stars
     this.updateScoresUI();
@@ -1702,11 +1717,16 @@ const duelEngine = {
     gameEngine.switchScreen('duel');
     
     // Speak duel start text
-    VoiceManager.speak("雙人烘焙對決賽，開始！先烘焙出指定數量甜點的玩家就能獲勝喔！");
+    VoiceManager.speak(this.duelMode === 'round'
+      ? "雙人烘焙回合賽，開始！每題先搶得配方的烘焙師得一分！"
+      : "雙人烘焙競速賽，開始！先烘焙出指定數量甜點的玩家獲勝！");
     
-    // Load first question for both
-    this.generatePlayerQuestion(1);
-    this.generatePlayerQuestion(2);
+    if (this.duelMode === 'round') {
+      this.generateRoundQuestions();
+    } else {
+      this.generatePlayerQuestion(1);
+      this.generatePlayerQuestion(2);
+    }
 
     // 啟動 3.0 秒讀題思考緩衝期倒數
     this.startBattleThinkingCountdown(3.0);
@@ -1718,6 +1738,27 @@ const duelEngine = {
     
     document.getElementById('p1-score-stars').innerText = '🧁'.repeat(this.p1Score);
     document.getElementById('p2-score-stars').innerText = '🧁'.repeat(this.p2Score);
+  },
+
+  generateRoundQuestions() {
+    const bank = QuestionGenerator.levels[this.currentDuelLevel];
+    const q = bank[Math.floor(Math.random() * bank.length)];
+    
+    // 對稱公平出題：雙方完全同題同結構
+    this.p1Question = { ...q };
+    this.p2Question = { ...q };
+    this.p1Choice = null;
+    this.p2Choice = null;
+    
+    document.getElementById('p1-question-text').innerText = q.qText;
+    document.getElementById('p2-question-text').innerText = q.qText;
+    document.getElementById('p1-feedback').classList.add('hidden');
+    document.getElementById('p2-feedback').classList.add('hidden');
+    document.getElementById('p1-pill-feedback').classList.add('hidden');
+    document.getElementById('p2-pill-feedback').classList.add('hidden');
+    
+    this.setupPlayerWorkspace(1, this.p1Question);
+    this.setupPlayerWorkspace(2, this.p2Question);
   },
   
   generatePlayerQuestion(playerNum) {
@@ -1731,12 +1772,14 @@ const duelEngine = {
       this.p1Choice = null;
       document.getElementById('p1-question-text').innerText = q.qText;
       document.getElementById('p1-feedback').classList.add('hidden');
+      document.getElementById('p1-pill-feedback').classList.add('hidden');
       this.setupPlayerWorkspace(1, this.p1Question);
     } else {
       this.p2Question = { ...q };
       this.p2Choice = null;
       document.getElementById('p2-question-text').innerText = q.qText;
       document.getElementById('p2-feedback').classList.add('hidden');
+      document.getElementById('p2-pill-feedback').classList.add('hidden');
       this.setupPlayerWorkspace(2, this.p2Question);
     }
   },
@@ -1746,6 +1789,79 @@ const duelEngine = {
     if (q) {
       VoiceManager.speak(q.qText);
     }
+  },
+
+  renderKeypadHTML(playerNum) {
+    return `
+      <div class="duel-keypad" id="p${playerNum}-keypad">
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="1">1</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="2">2</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="3">3</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="4">4</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="5">5</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="6">6</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="7">7</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="8">8</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="9">9</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key" data-key="0">0</button>
+        <button type="button" class="duel-key-btn p${playerNum}-key key-clear" data-key="clear">⌫ 清除</button>
+      </div>
+    `;
+  },
+
+  setupKeypadBindings(playerNum) {
+    const intBox = document.getElementById(`p${playerNum}-ans-int`);
+    const numBox = document.getElementById(`p${playerNum}-ans-num`);
+    if (!intBox || !numBox) return;
+
+    const setActive = (cell) => {
+      intBox.classList.remove('active-cell');
+      numBox.classList.remove('active-cell');
+      cell.classList.add('active-cell');
+      if (playerNum === 1) this.p1ActiveCell = cell;
+      else this.p2ActiveCell = cell;
+    };
+
+    intBox.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      setActive(intBox);
+      AudioSynth.play('click');
+    });
+
+    numBox.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      setActive(numBox);
+      AudioSynth.play('click');
+    });
+
+    // 預設選取分子格
+    setActive(numBox);
+
+    // 綁定虛擬鍵盤點擊事件
+    document.querySelectorAll(`.p${playerNum}-key`).forEach(btn => {
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (this.isBattleThinkingPhase) {
+          AudioSynth.playSoftClick();
+          this.triggerBattleSideShake(playerNum);
+          return;
+        }
+        AudioSynth.play('click');
+        const key = btn.getAttribute('data-key');
+        const activeCell = (playerNum === 1 ? this.p1ActiveCell : this.p2ActiveCell) || numBox;
+
+        if (key === 'clear') {
+          activeCell.value = (activeCell === intBox ? '0' : '');
+        } else {
+          const cur = activeCell.value;
+          if (cur === '0' || cur === '') {
+            activeCell.value = key;
+          } else if (cur.length < 2) {
+            activeCell.value = cur + key;
+          }
+        }
+      });
+    });
   },
   
   setupPlayerWorkspace(playerNum, q) {
@@ -1789,14 +1905,16 @@ const duelEngine = {
         
         inputsArea.innerHTML = `
           <div class="fraction-input-block" style="font-size:1.2rem;">
-            <input type="number" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box" style="width:40px; height:50px; font-size:1.2rem;" value="0">
+            <input type="text" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:40px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
             <div class="frac-input-group">
-              <input type="number" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;">
+              <input type="text" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:35px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
               <div class="frac-input-divider" style="width:35px;"></div>
-              <input type="number" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.den}" readonly>
+              <input type="text" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.den}" readonly inputmode="none">
             </div>
           </div>
+          ${this.renderKeypadHTML(playerNum)}
         `;
+        this.setupKeypadBindings(playerNum);
       }
     }
     
@@ -1845,14 +1963,16 @@ const duelEngine = {
       
       inputsArea.innerHTML = `
         <div class="fraction-input-block" style="font-size:1.2rem;">
-          <input type="number" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box" style="width:40px; height:50px; font-size:1.2rem;" value="0">
+          <input type="text" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:40px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
           <div class="frac-input-group">
-            <input type="number" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;">
+            <input type="text" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:35px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
             <div class="frac-input-divider" style="width:35px;"></div>
-            <input type="number" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly>
+            <input type="text" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly inputmode="none">
           </div>
         </div>
+        ${this.renderKeypadHTML(playerNum)}
       `;
+      this.setupKeypadBindings(playerNum);
     }
     
     // Level 4: Integer Multiples
@@ -1866,14 +1986,50 @@ const duelEngine = {
       
       inputsArea.innerHTML = `
         <div class="fraction-input-block" style="font-size:1.2rem;">
-          <input type="number" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box" style="width:40px; height:50px; font-size:1.2rem;" value="0">
+          <input type="text" id="p${playerNum}-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:40px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
           <div class="frac-input-group">
-            <input type="number" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;">
+            <input type="text" id="p${playerNum}-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:35px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
             <div class="frac-input-divider" style="width:35px;"></div>
-            <input type="number" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly>
+            <input type="text" id="p${playerNum}-ans-den" placeholder="母" class="frac-input-box" style="width:35px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly inputmode="none">
           </div>
         </div>
+        ${this.renderKeypadHTML(playerNum)}
       `;
+      this.setupKeypadBindings(playerNum);
+    }
+  },
+
+  showMicroDiagnosticPill(playerNum, q) {
+    const pillEl = document.getElementById(`p${playerNum}-pill-feedback`);
+    if (!pillEl) return;
+    
+    let pillMsg = "";
+    const intVal = parseInt(document.getElementById(`p${playerNum}-ans-int`)?.value) || 0;
+    const numVal = parseInt(document.getElementById(`p${playerNum}-ans-num`)?.value) || 0;
+    const denVal = parseInt(document.getElementById(`p${playerNum}-ans-den`)?.value) || 1;
+    
+    if (this.currentDuelLevel === 1) {
+      if (q.type === 'convert_to_mixed' && intVal === 0 && q.ans.int > 0) {
+        pillMsg = "💡 提醒：假分數要將整數部分提煉出來喔！";
+      }
+    } else if (this.currentDuelLevel === 3) {
+      if (denVal !== q.ans.den) {
+        pillMsg = "💡 提醒：同分母相加減，分母不變喔！";
+      } else if (q.data && q.data.op === '-' && q.data.f1 && q.data.f2 && q.data.f1.int > 0 && q.data.f1.num < q.data.f2.num) {
+        pillMsg = "💡 提醒：分子不夠減時，向整數借 1 化為假分數！";
+      }
+    } else if (this.currentDuelLevel === 4) {
+      if (denVal !== q.ans.den) {
+        pillMsg = "💡 提醒：分數乘整數，只有分子要乘喔！";
+      }
+    }
+    
+    if (pillMsg) {
+      pillEl.innerText = pillMsg;
+      pillEl.classList.remove('hidden');
+      setTimeout(() => {
+        pillEl.classList.add('hidden');
+      }, 2500);
     }
   },
   
@@ -1942,11 +2098,25 @@ const duelEngine = {
       else this.p2Score++;
       this.updateScoresUI();
       
-      // Disable player controls briefly then give new question
-      document.getElementById(`p${playerNum}-submit-btn`).disabled = true;
+      // Disable player controls briefly
+      const btn1 = document.getElementById('p1-submit-btn');
+      const btn2 = document.getElementById('p2-submit-btn');
+      if (btn1) btn1.disabled = true;
+      if (btn2) btn2.disabled = true;
+
+      if (this.duelMode === 'round') {
+        const winnerName = playerNum === 1 ? "紅方烘焙師" : "藍方烘焙師";
+        const statusBar = document.getElementById('battle-status-bar');
+        if (statusBar) {
+          statusBar.className = 'battle-status-bar ready';
+          const textEl = statusBar.querySelector('#battle-status-text');
+          if (textEl) textEl.innerHTML = `🎉 <strong>${winnerName} 搶先烘焙成功！+1 🧁</strong>`;
+        }
+      }
       
       setTimeout(() => {
-        document.getElementById(`p${playerNum}-submit-btn`).disabled = false;
+        if (btn1) btn1.disabled = false;
+        if (btn2) btn2.disabled = false;
         
         // Check win condition
         if (playerNum === 1 && this.p1Score >= this.winLimit) {
@@ -1954,7 +2124,12 @@ const duelEngine = {
         } else if (playerNum === 2 && this.p2Score >= this.winLimit) {
           this.declareWinner("藍方烘焙師");
         } else {
-          this.generatePlayerQuestion(playerNum);
+          if (this.duelMode === 'round') {
+            this.generateRoundQuestions();
+            this.startBattleThinkingCountdown(3.0);
+          } else {
+            this.generatePlayerQuestion(playerNum);
+          }
         }
       }, 1000);
       
@@ -1963,7 +2138,9 @@ const duelEngine = {
       feedbackEl.innerText = "配方錯了，再試一次！❌";
       feedbackEl.className = "duel-feedback incorrect";
       
-      // Keep inputting allowed
+      // Show micro-diagnostic misconception pill
+      this.showMicroDiagnosticPill(playerNum, q);
+      
       setTimeout(() => {
         feedbackEl.classList.add('hidden');
       }, 2000);
@@ -2345,11 +2522,24 @@ const playtestEngine = {
     duelEngine.onBattleThinkingComplete();
     this.assert(duelEngine.isBattleThinkingPhase === false, "倒數結束成功解除鎖定並進入開搶競速階段", "未能順利解除鎖定");
 
+    // 驗證同步回合賽制下雙方題目完全對稱
+    this.assert(duelEngine.p1Question.id === duelEngine.p2Question.id, "同步回合賽制下，雙方獲派完全對稱之同構題目（保證競技公平性）", "雙方題目不對稱！");
+
+    // 驗證迷思回饋膠囊容器存在
+    const p1Pill = document.getElementById('p1-pill-feedback');
+    const p2Pill = document.getElementById('p2-pill-feedback');
+    this.assert(p1Pill !== null && p2Pill !== null, "雙人對抗面板已配置輕量級迷思回饋膠囊結構", "找不到迷思回饋膠囊！");
+
     // Simulate player turns
     // P1 wins: P1 gets 5 correct, P2 gets 1 correct.
     for (let round = 1; round <= 5; round++) {
       if (!this.active) return;
       this.log(`[對決回合 ${round}] 模擬紅藍方答題中...`, 'info');
+
+      // 若該回合有思考倒數，加速完成以進行回合斷言
+      if (duelEngine.isBattleThinkingPhase) {
+        duelEngine.onBattleThinkingComplete();
+      }
       
       // Player 1 (Red) answers correctly
       const q1 = duelEngine.p1Question;
@@ -2362,7 +2552,7 @@ const playtestEngine = {
       }
       duelEngine.submitPlayerAnswer(1);
       
-      // Player 2 (Blue) answers correctly in round 1, incorrectly/slowly in other rounds
+      // Player 2 (Blue) answers correctly in round 1, incorrectly in other rounds
       const q2 = duelEngine.p2Question;
       if (round === 1) {
         if (q2.type === 'classify') {
@@ -2374,17 +2564,17 @@ const playtestEngine = {
         }
         duelEngine.submitPlayerAnswer(2);
       } else {
-        // P2 answers wrong or skips
+        // P2 answers wrong to trigger micro-diagnostic pill
         if (q2.type === 'classify') {
           duelEngine.p2Choice = q2.ans === 'true' ? 'mixed' : 'true';
         } else {
-          document.getElementById('p2-ans-int').value = 99;
+          document.getElementById('p2-ans-int').value = 0;
           document.getElementById('p2-ans-num').value = 99;
         }
         duelEngine.submitPlayerAnswer(2);
       }
       
-      await new Promise(r => setTimeout(r, 1200)); // Wait for timer transitions
+      await new Promise(r => setTimeout(r, 1200)); // Wait for round transition
     }
     
     // Assert winner modal

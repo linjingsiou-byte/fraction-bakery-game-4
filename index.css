@@ -1008,7 +1008,8 @@ button {
 .player-panel.cooling .duel-input-area,
 .player-panel.cooling .btn-primary-small,
 .player-panel.cooling .comparison-buttons,
-.player-panel.cooling .choices-layout {
+.player-panel.cooling .choices-layout,
+.player-panel.cooling .duel-keypad {
   filter: grayscale(0.5);
   opacity: 0.6;
   cursor: not-allowed;
@@ -1143,6 +1144,91 @@ button {
 .duel-feedback.incorrect {
   background: rgba(231, 76, 60, 0.2);
   color: var(--error-red);
+}
+
+/* ==================== DUEL VIRTUAL KEYPAD & CELL ==================== */
+.duel-cell {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.duel-cell.active-cell {
+  border-color: var(--magic-gold) !important;
+  background: rgba(255, 215, 0, 0.18) !important;
+  box-shadow: 0 0 12px var(--magic-gold-glow) !important;
+}
+
+.duel-keypad {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 6px;
+}
+
+.duel-key-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 8px 4px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duel-key-btn:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: var(--magic-gold);
+  color: var(--magic-gold-light);
+}
+
+.duel-key-btn:active {
+  transform: scale(0.92);
+}
+
+.duel-key-btn.key-clear {
+  grid-column: span 2;
+  font-size: 0.9rem;
+  background: rgba(231, 76, 60, 0.18);
+  border-color: rgba(231, 76, 60, 0.4);
+  color: #ff9999;
+}
+
+.duel-key-btn.key-clear:hover {
+  background: rgba(231, 76, 60, 0.35);
+  color: #fff;
+}
+
+/* ==================== DUEL MICRO-DIAGNOSTIC PILL FEEDBACK ==================== */
+.duel-pill-feedback {
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.18) 0%, rgba(255, 107, 107, 0.18) 100%);
+  border: 1.5px solid var(--magic-gold);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--magic-gold-light);
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(255, 184, 0, 0.25);
+  backdrop-filter: blur(8px);
+  animation: slideUpPill 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.duel-pill-feedback.hidden {
+  display: none !important;
+}
+
+@keyframes slideUpPill {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==================== MODALS ==================== */

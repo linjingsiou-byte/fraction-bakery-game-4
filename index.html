@@ -168,6 +168,14 @@
         </div>
         
         <div class="setup-row">
+          <label for="duel-mode-select">對戰賽制：</label>
+          <select id="duel-mode-select" class="glass-select">
+            <option value="round" selected>⚔️ 同步回合爭奪制 (每題同台競答・推薦)</option>
+            <option value="race">⚡ 自由分流競速制 (個人刷題競速)</option>
+          </select>
+        </div>
+
+        <div class="setup-row">
           <label for="duel-win-limit">獲勝所需烘焙糕點數：</label>
           <select id="duel-win-limit" class="glass-select">
             <option value="5" selected>5 個 (快速對決)</option>
@@ -184,7 +192,7 @@
     <section id="duel-screen" class="screen">
       <div class="duel-top-bar">
         <button class="btn-back-small" onclick="gameEngine.switchScreen('home')">放棄對決</button>
-        <div class="duel-title-center">🍰 雙人烘焙競速賽 🍰</div>
+        <div class="duel-title-center" id="duel-title-display">🍰 雙人烘焙競速賽 🍰</div>
         <div class="duel-limit-info">目標：烘焙出 <span id="duel-target-score">5</span> 個甜點</div>
       </div>
       
@@ -223,6 +231,7 @@
             </div>
             
             <div id="p1-feedback" class="duel-feedback hidden"></div>
+            <div id="p1-pill-feedback" class="duel-pill-feedback hidden"></div>
           </div>
         </div>
         
@@ -249,6 +258,7 @@
             </div>
             
             <div id="p2-feedback" class="duel-feedback hidden"></div>
+            <div id="p2-pill-feedback" class="duel-pill-feedback hidden"></div>
           </div>
         </div>
       </div>
