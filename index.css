@@ -1799,3 +1799,186 @@ button {
   transform: scale(1.05);
 }
 
+/* ==================== OPTIMIZATION 1-3: SINGLE KEYPAD, PACKING & BORROW KNIFE ==================== */
+
+/* Optimization 1: Single-player Virtual Keypad */
+.single-keypad-wrap {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.single-keypad-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Optimization 3: Level 1 Interactive Packing Scaffolding */
+.pack-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px dashed rgba(255, 215, 0, 0.35);
+  border-radius: 14px;
+}
+.btn-magic-pack {
+  background: linear-gradient(135deg, hsl(45, 100%, 55%) 0%, hsl(32, 95%, 50%) 100%);
+  color: #1a1a2e;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.35);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-magic-pack:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 18px rgba(255, 193, 7, 0.55);
+}
+.btn-magic-slice {
+  background: linear-gradient(135deg, hsl(205, 85%, 60%) 0%, hsl(225, 80%, 55%) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.35);
+  transition: all 0.2s ease;
+}
+.btn-magic-slice:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+.pack-summary-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  color: var(--magic-gold-light);
+  font-weight: 700;
+}
+
+.baking-plate.plate-full-packable {
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
+  border-radius: 50%;
+  animation: packablePulse 1.5s infinite alternate;
+}
+@keyframes packablePulse {
+  0% { filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.4)); }
+  100% { filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.85)); }
+}
+.baking-plate.packed-into-whole {
+  animation: packIntoWhole 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes packIntoWhole {
+  0% { transform: scale(0.6) rotate(-15deg); opacity: 0.4; }
+  65% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Optimization 2: Level 3 Subtraction Borrow Knife Animation */
+.borrow-helper-btn-wrap {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+.btn-borrow-demo {
+  background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 22px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 117, 140, 0.4);
+  transition: all 0.2s ease;
+}
+.btn-borrow-demo:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 117, 140, 0.65);
+}
+
+.borrow-knife-panel {
+  margin-top: 16px;
+  background: rgba(20, 24, 52, 0.92);
+  border: 2px solid var(--magic-gold);
+  border-radius: 18px;
+  padding: 18px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.35s ease-out;
+}
+.borrow-panel-title {
+  color: var(--magic-gold);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.borrow-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  margin: 12px 0;
+}
+.borrow-step-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  position: relative;
+}
+.borrow-step-badge {
+  background: rgba(255, 215, 0, 0.2);
+  color: var(--magic-gold-light);
+  border: 1px solid var(--magic-gold);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.knife-icon-anim {
+  font-size: 2.2rem;
+  display: inline-block;
+  animation: knifeChop 0.9s ease-in-out infinite alternate;
+  margin: 4px 0;
+}
+@keyframes knifeChop {
+  0% { transform: translateY(-6px) rotate(-20deg); }
+  100% { transform: translateY(6px) rotate(15deg) scale(1.12); }
+}
+.borrow-math-summary {
+  margin-top: 10px;
+  font-size: 1.05rem;
+  color: #fff;
+  background: rgba(46, 204, 113, 0.15);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: center;
+  line-height: 1.6;
+}
+

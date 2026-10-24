@@ -136,7 +136,53 @@ const AudioSynth = {
       this.playCakeStack();
     } else if (type === 'doubleCake') {
       this.playDoubleCake();
+    } else if (type === 'knifeSlice') {
+      this.playKnifeSlice();
+    } else if (type === 'packBox') {
+      this.playPackBox();
     }
+  },
+
+  playKnifeSlice() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.exponentialRampToValueAtTime(280, now + 0.12);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch(e) {}
+  },
+
+  playPackBox() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [392.00, 523.25, 659.25].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.06);
+        gain.gain.setValueAtTime(0, now + i * 0.06);
+        gain.gain.linearRampToValueAtTime(0.14, now + i * 0.06 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.06);
+        osc.stop(now + i * 0.06 + 0.3);
+      });
+    } catch(e) {}
   },
 
   playCakeStack() {
@@ -629,6 +675,47 @@ const RenderEngine = {
     if (!container) return;
     container.innerHTML = '';
     
+    // Optimization 3: Interactive Packing Action Bar when interactive
+    let summaryBadge = null;
+    if (isInteractive) {
+      const actionBar = document.createElement('div');
+      actionBar.className = 'pack-action-bar';
+      actionBar.id = `${containerId}-pack-bar`;
+
+      const packBtn = document.createElement('button');
+      packBtn.type = 'button';
+      packBtn.className = 'btn-magic-pack';
+      packBtn.id = 'btn-magic-pack-all';
+      packBtn.innerHTML = `📦 湊滿 ${denPart} 片打包成 1 個完整蛋糕`;
+
+      const sliceBtn = document.createElement('button');
+      sliceBtn.type = 'button';
+      sliceBtn.className = 'btn-magic-slice';
+      sliceBtn.id = 'btn-magic-slice-all';
+      sliceBtn.innerHTML = `🔪 將完整蛋糕切開數片數`;
+
+      summaryBadge = document.createElement('div');
+      summaryBadge.className = 'pack-summary-badge';
+      summaryBadge.id = 'l1-pack-summary';
+
+      actionBar.appendChild(packBtn);
+      actionBar.appendChild(sliceBtn);
+      actionBar.appendChild(summaryBadge);
+      container.appendChild(actionBar);
+
+      packBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        AudioSynth.play('packBox');
+        packFullPlates();
+      });
+
+      sliceBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        AudioSynth.play('knifeSlice');
+        sliceAllWholePlates();
+      });
+    }
+
     const cakeContainer = document.createElement('div');
     cakeContainer.className = 'cake-visualization-container';
     cakeContainer.id = containerId + '-cakes';
@@ -645,7 +732,8 @@ const RenderEngine = {
           isSliced: false,
           filledSlices: 1,
           totalSlices: 1,
-          label: '1 個完整蛋糕'
+          label: '1 個完整蛋糕',
+          justPacked: false
         });
       }
       // 2. Fractional plate (if numPart > 0)
@@ -655,7 +743,8 @@ const RenderEngine = {
           isSliced: true,
           filledSlices: numPart,
           totalSlices: denPart,
-          label: `分母為 ${denPart}`
+          label: `分母為 ${denPart}`,
+          justPacked: false
         });
       }
     } else {
@@ -672,12 +761,31 @@ const RenderEngine = {
           isSliced: true,
           filledSlices: filled,
           totalSlices: denPart,
-          label: `分母為 ${denPart}`
+          label: filled === denPart && isInteractive ? `✨ 已湊滿 ${denPart}/${denPart}！可打包` : `分母為 ${denPart}`,
+          justPacked: false
         });
       }
     }
+
+    const updateSummaryText = () => {
+      if (!summaryBadge) return;
+      let wholeCount = 0;
+      let looseSlices = 0;
+      let totalSlices = 0;
+      platesData.forEach(p => {
+        if (p.type === 'whole' && !p.isSliced) {
+          wholeCount++;
+          totalSlices += denPart;
+        } else {
+          looseSlices += p.filledSlices;
+          totalSlices += p.filledSlices;
+        }
+      });
+      summaryBadge.innerText = `目前：${wholeCount} 個完整蛋糕 ＋ ${looseSlices} 片（共 ${totalSlices} 片）`;
+    };
     
-    const notifyStateChange = () => {
+    const notifyStateChange = (modeHint = null) => {
+      updateSummaryText();
       if (!onStateChange) return;
       let totalSlices = 0;
       platesData.forEach(p => {
@@ -689,7 +797,57 @@ const RenderEngine = {
       });
       const calculatedInt = Math.floor(totalSlices / denPart);
       const calculatedNum = totalSlices % denPart;
-      onStateChange(calculatedInt, calculatedNum, denPart);
+      onStateChange(calculatedInt, calculatedNum, denPart, modeHint);
+    };
+
+    const packFullPlates = () => {
+      let totalSlices = 0;
+      platesData.forEach(p => {
+        if (p.type === 'whole' && !p.isSliced) {
+          totalSlices += denPart;
+        } else {
+          totalSlices += p.filledSlices;
+        }
+      });
+      const wholes = Math.floor(totalSlices / denPart);
+      const rem = totalSlices % denPart;
+      platesData.length = 0;
+      for (let i = 0; i < wholes; i++) {
+        platesData.push({
+          type: 'whole',
+          isSliced: false,
+          filledSlices: 1,
+          totalSlices: 1,
+          label: '📦 1 個完整蛋糕',
+          justPacked: true
+        });
+      }
+      if (rem > 0 || wholes === 0) {
+        platesData.push({
+          type: 'fraction',
+          isSliced: true,
+          filledSlices: rem,
+          totalSlices: denPart,
+          label: `散裝 ${rem}/${denPart}`,
+          justPacked: false
+        });
+      }
+      redrawAll();
+      notifyStateChange('packed');
+    };
+
+    const sliceAllWholePlates = () => {
+      platesData.forEach(p => {
+        if (p.type === 'whole' && !p.isSliced) {
+          p.isSliced = true;
+          p.totalSlices = denPart;
+          p.filledSlices = denPart;
+          p.label = `切成 ${denPart} 份 (${denPart}/${denPart})`;
+          p.justPacked = false;
+        }
+      });
+      redrawAll();
+      notifyStateChange('sliced');
     };
     
     const redrawAll = () => {
@@ -705,23 +863,31 @@ const RenderEngine = {
           // Render as unpartitioned solid whole cake
           this.drawCakeSVG(plateId, 1, 1, isInteractive, () => {
             // Student clicked on whole cake to slice it open (Scaffolding!)
+            AudioSynth.play('knifeSlice');
             p.isSliced = true;
             p.totalSlices = denPart;
             p.filledSlices = denPart;
             p.label = `切成 ${denPart} 份 (${denPart}/${denPart})`;
+            p.justPacked = false;
             redrawAll();
             notifyStateChange();
           }, p.label);
+          if (p.justPacked) {
+            const innerPlate = plateDiv.querySelector('.baking-plate');
+            if (innerPlate) innerPlate.classList.add('packed-into-whole');
+          }
         } else if (p.type === 'whole' && p.isSliced) {
           // Whole cake currently sliced open
           this.drawCakeSVG(plateId, p.filledSlices, denPart, isInteractive, (newFilled) => {
             p.filledSlices = newFilled;
             if (newFilled === denPart) {
               // When full again, toggle back to solid whole cake
+              AudioSynth.play('packBox');
               p.isSliced = false;
               p.totalSlices = 1;
               p.filledSlices = 1;
-              p.label = '1 個完整蛋糕';
+              p.label = '📦 1 個完整蛋糕';
+              p.justPacked = true;
             } else {
               p.label = `切成 ${denPart} 份 (${newFilled}/${denPart})`;
             }
@@ -730,13 +896,21 @@ const RenderEngine = {
           }, p.label);
         } else {
           // Fractional plate
+          const isFullPackable = isInteractive && p.filledSlices === denPart;
+          const displayLabel = isFullPackable ? `✨ 已湊滿 ${denPart}/${denPart}！` : p.label;
           this.drawCakeSVG(plateId, p.filledSlices, p.totalSlices, isInteractive, (newFilled) => {
             p.filledSlices = newFilled;
+            p.label = (newFilled === denPart && isInteractive) ? `✨ 已湊滿 ${denPart}/${denPart}！` : `分母為 ${denPart}`;
             redrawAll();
             notifyStateChange();
-          }, p.label);
+          }, displayLabel);
+          if (isFullPackable) {
+            const innerPlate = plateDiv.querySelector('.baking-plate');
+            if (innerPlate) innerPlate.classList.add('plate-full-packable');
+          }
         }
       });
+      updateSummaryText();
     };
     
     redrawAll();
@@ -799,25 +973,19 @@ const RenderEngine = {
     
     // Draw f1 slices (Blue overlay)
     const drawOverlapSlices = (fVal, cssClass, sweepDir) => {
-      // Represent total slices on 1 cake, normalized
       const den = fVal.den;
       const totalParts = fVal.int * den + fVal.num;
-      // We will draw the total parts as sectors.
-      // If it exceeds 1 whole, we will wrap it into the single circle visual to show portion size compared to 1 whole!
-      // This is a beautiful way to visualize improper fractions!
       const fractionVal = totalParts / den;
       const angle = (2 * Math.PI) * (fractionVal % 1 === 0 && fractionVal > 0 ? 1 : (fractionVal % 1));
       
       if (fractionVal >= 1 && angle === 0) {
-        // Exactly whole numbers
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute('cx', '50');
         circle.setAttribute('cy', '50');
-        circle.setAttribute('r', `${cssClass === 'overlap-slice-a' ? 45 : 40}`); // slight size diff to see border
+        circle.setAttribute('r', `${cssClass === 'overlap-slice-a' ? 45 : 40}`);
         circle.setAttribute('class', cssClass);
         svg.appendChild(circle);
       } else {
-        // Draw whole circles for the integer part
         const wholes = Math.floor(fractionVal);
         if (wholes > 0) {
           const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -829,7 +997,6 @@ const RenderEngine = {
           svg.appendChild(circle);
         }
         
-        // Draw fractional sector on top
         if (angle > 0) {
           const x1 = cx + r * Math.cos(0);
           const y1 = cy + r * Math.sin(0);
@@ -864,6 +1031,72 @@ const RenderEngine = {
     overlay.appendChild(closeBtn);
     
     parentContainer.appendChild(overlay);
+  },
+
+  /**
+   * Optimization 2: Level 3 Subtraction Borrow Knife Animation
+   * Shows step-by-step how 1 whole solid cake is sliced by a magic knife into den/den slices.
+   */
+  showLevel3BorrowAnimation(f1, f2, containerId) {
+    const parentContainer = document.getElementById(containerId);
+    if (!parentContainer) return;
+
+    const existing = document.getElementById('borrow-knife-animation');
+    if (existing) existing.remove();
+
+    AudioSynth.play('knifeSlice');
+
+    const panel = document.createElement('div');
+    panel.className = 'borrow-knife-panel';
+    panel.id = 'borrow-knife-animation';
+
+    const den = f1.den;
+    const remInt = Math.max(0, f1.int - 1);
+    const newNum = f1.num + den;
+    const finalInt = remInt - f2.int;
+    const finalNum = newNum - f2.num;
+
+    panel.innerHTML = `
+      <div class="borrow-panel-title">🔪 魔法烘焙刀「向整數借 1」切蛋糕圖解</div>
+      <div class="borrow-steps-grid">
+        <div class="borrow-step-card">
+          <span class="borrow-step-badge">步驟 1：原本的蛋糕</span>
+          <div style="font-size: 1.9rem; margin: 6px 0;">
+            ${MathRenderer.render(f1.int, f1.num, den)} － ${MathRenderer.render(f2.int, f2.num, den)}
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            散裝只有 <strong>${f1.num}</strong> 片，不夠減去 <strong>${f2.num}</strong> 片！
+          </p>
+        </div>
+
+        <div class="borrow-step-card" style="border-color: var(--magic-gold);">
+          <span class="borrow-step-badge">步驟 2：借 1 個蛋糕切開</span>
+          <div class="knife-icon-anim">🔪</div>
+          <div id="borrow-sliced-cake-demo"></div>
+          <p style="font-size: 0.85rem; color: var(--magic-gold-light);">
+            拿出 <strong>1 個完整蛋糕</strong>，用魔法刀切成 <strong>${MathRenderer.render(0, den, den)}</strong>（${den} 片）！
+          </p>
+        </div>
+
+        <div class="borrow-step-card">
+          <span class="borrow-step-badge">步驟 3：合起來再減</span>
+          <div style="font-size: 1.8rem; margin: 6px 0;">
+            ${MathRenderer.render(remInt, newNum, den)} － ${MathRenderer.render(f2.int, f2.num, den)}
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            切開的 ${den} 片加上原本 ${f1.num} 片＝<strong>${newNum} 片</strong>，減去 ${f2.num} 片剩下 <strong>${finalNum} 片</strong>！
+          </p>
+        </div>
+      </div>
+      <div class="borrow-math-summary">
+        ✨ 借位換算結果：${MathRenderer.render(f1.int, f1.num, den)} 變成 ${MathRenderer.render(remInt, newNum, den)}，減去 ${MathRenderer.render(f2.int, f2.num, den)} ＝ <strong>${MathRenderer.render(finalInt, finalNum, den)}</strong>
+      </div>
+    `;
+
+    parentContainer.appendChild(panel);
+
+    // Draw the sliced cake SVG inside step 2
+    this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, `1 切成 ${den}/${den}`);
   },
   
   /**
@@ -1264,18 +1497,19 @@ const gameEngine = {
           if (denInput) denInput.value = calcDen;
         });
         
-        // Setup inputs as text box fraction input
+        // Setup inputs as text box fraction input with tablet virtual keypad
         inputsContainer.innerHTML = `
           <div class="fraction-input-block">
-            <input type="number" id="ans-int" placeholder="整數" class="int-input-box" min="0" value="0">
+            <input type="text" id="ans-int" placeholder="整數" class="int-input-box duel-cell" value="0" readonly inputmode="none">
             <div class="frac-input-group">
-              <input type="number" id="ans-num" placeholder="分子" class="frac-input-box" min="0">
+              <input type="text" id="ans-num" placeholder="分子" class="frac-input-box duel-cell" value="" readonly inputmode="none">
               <div class="frac-input-divider"></div>
-              <input type="number" id="ans-den" placeholder="分母" class="frac-input-box" min="1" value="${q.data.den}" readonly>
+              <input type="text" id="ans-den" placeholder="分母" class="frac-input-box duel-cell" value="${q.data.den}" readonly inputmode="none">
             </div>
           </div>
-          <p style="font-size:0.85rem; color:var(--text-muted);">可以直接在上方蛋糕點擊分配，或者在此輸入數值喔！</p>
+          ${this.renderSingleKeypadHTML('點選上方蛋糕切片打包，或用小鍵盤輸入數值喔！')}
         `;
+        this.setupSingleKeypadBindings();
       }
     }
     
@@ -1345,18 +1579,37 @@ const gameEngine = {
         ＝ ？
       `;
       visualArea.appendChild(eqText);
+
+      // Optimization 2: Add interactive Borrow Knife Demo button when subtraction needs borrowing
+      if (q.data.op === '-' && q.data.f1.num < q.data.f2.num) {
+        const borrowWrap = document.createElement('div');
+        borrowWrap.className = 'borrow-helper-btn-wrap';
+        const borrowBtn = document.createElement('button');
+        borrowBtn.type = 'button';
+        borrowBtn.className = 'btn-borrow-demo';
+        borrowBtn.id = 'btn-borrow-demo';
+        borrowBtn.innerHTML = '🔪 魔法借位切刀示範（分子不夠減怎麼辦？）';
+        borrowBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          RenderEngine.showLevel3BorrowAnimation(q.data.f1, q.data.f2, 'visual-interaction-area');
+        });
+        borrowWrap.appendChild(borrowBtn);
+        visualArea.appendChild(borrowWrap);
+      }
       
-      // Answer Inputs (Whole number, Numerator, Denominator)
+      // Answer Inputs (Whole number, Numerator, Denominator) with Virtual Keypad
       inputsContainer.innerHTML = `
         <div class="fraction-input-block">
-          <input type="number" id="ans-int" placeholder="整數" class="int-input-box" min="0" value="0">
+          <input type="text" id="ans-int" placeholder="整數" class="int-input-box duel-cell" value="0" readonly inputmode="none">
           <div class="frac-input-group">
-            <input type="number" id="ans-num" placeholder="分子" class="frac-input-box" min="0">
+            <input type="text" id="ans-num" placeholder="分子" class="frac-input-box duel-cell" value="" readonly inputmode="none">
             <div class="frac-input-divider"></div>
-            <input type="number" id="ans-den" placeholder="分母" class="frac-input-box" min="1" value="${q.data.f1.den}" readonly>
+            <input type="text" id="ans-den" placeholder="分母" class="frac-input-box duel-cell" value="${q.data.f1.den}" readonly inputmode="none">
           </div>
         </div>
+        ${this.renderSingleKeypadHTML('點選整數或分子格，用下方小鍵盤輸入數值！')}
       `;
+      this.setupSingleKeypadBindings();
     }
     
     // Level 4: Integer Multiples
@@ -1367,17 +1620,104 @@ const gameEngine = {
       visualArea.appendChild(visualContainer);
       RenderEngine.renderLevel4Visual('l4-multiples-visual', q.data.f1, q.data.factor);
       
-      // Fraction Answer Inputs
+      // Fraction Answer Inputs with Virtual Keypad
       inputsContainer.innerHTML = `
         <div class="fraction-input-block">
-          <input type="number" id="ans-int" placeholder="整數" class="int-input-box" min="0" value="0">
+          <input type="text" id="ans-int" placeholder="整數" class="int-input-box duel-cell" value="0" readonly inputmode="none">
           <div class="frac-input-group">
-            <input type="number" id="ans-num" placeholder="分子" class="frac-input-box" min="0">
+            <input type="text" id="ans-num" placeholder="分子" class="frac-input-box duel-cell" value="" readonly inputmode="none">
             <div class="frac-input-divider"></div>
-            <input type="number" id="ans-den" placeholder="分母" class="frac-input-box" min="1" value="${q.data.f1.den}" readonly>
+            <input type="text" id="ans-den" placeholder="分母" class="frac-input-box duel-cell" value="${q.data.f1.den}" readonly inputmode="none">
           </div>
         </div>
+        ${this.renderSingleKeypadHTML('點選整數或分子格，用下方小鍵盤輸入數值！')}
       `;
+      this.setupSingleKeypadBindings();
+    }
+  },
+
+  renderSingleKeypadHTML(hintText = '') {
+    return `
+      <div class="single-keypad-wrap" id="single-keypad-wrap">
+        <div class="duel-virtual-keypad" id="single-virtual-keypad">
+          <button type="button" class="duel-key-btn single-key" data-key="1">1</button>
+          <button type="button" class="duel-key-btn single-key" data-key="2">2</button>
+          <button type="button" class="duel-key-btn single-key" data-key="3">3</button>
+          <button type="button" class="duel-key-btn single-key" data-key="4">4</button>
+          <button type="button" class="duel-key-btn single-key" data-key="5">5</button>
+          <button type="button" class="duel-key-btn single-key" data-key="6">6</button>
+          <button type="button" class="duel-key-btn single-key" data-key="7">7</button>
+          <button type="button" class="duel-key-btn single-key" data-key="8">8</button>
+          <button type="button" class="duel-key-btn single-key" data-key="9">9</button>
+          <button type="button" class="duel-key-btn single-key" data-key="0">0</button>
+          <button type="button" class="duel-key-btn single-key key-clear" data-key="clear">⌫ 清除</button>
+        </div>
+        ${hintText ? `<p class="single-keypad-hint">${hintText}</p>` : ''}
+      </div>
+    `;
+  },
+
+  setupSingleKeypadBindings() {
+    const intBox = document.getElementById('ans-int');
+    const numBox = document.getElementById('ans-num');
+    const denBox = document.getElementById('ans-den');
+    if (!intBox || !numBox) return;
+
+    const cells = [intBox, numBox, denBox].filter(Boolean);
+    const setActive = (cell) => {
+      cells.forEach(c => c.classList.remove('active-cell'));
+      cell.classList.add('active-cell');
+      this.activeSingleCell = cell;
+    };
+
+    cells.forEach(cell => {
+      cell.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        setActive(cell);
+        AudioSynth.play('click');
+      });
+    });
+
+    // Default active cell: numerator
+    setActive(numBox);
+
+    const handleKeyInput = (key) => {
+      const activeCell = this.activeSingleCell || numBox;
+      if (key === 'clear') {
+        activeCell.value = (activeCell === intBox ? '0' : '');
+      } else {
+        const cur = String(activeCell.value || '');
+        if (cur === '0' || cur === '') {
+          activeCell.value = key;
+        } else if (cur.length < 2) {
+          activeCell.value = cur + key;
+        }
+      }
+    };
+
+    document.querySelectorAll('.single-key').forEach(btn => {
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        AudioSynth.play('click');
+        handleKeyInput(btn.getAttribute('data-key'));
+      });
+    });
+
+    // Physical keyboard support for desktop users
+    if (!this._singleKeydownBound) {
+      this._singleKeydownBound = true;
+      window.addEventListener('keydown', (e) => {
+        if (this.currentScreen !== 'single') return;
+        const curInt = document.getElementById('ans-int');
+        if (!curInt) return;
+        if (e.key >= '0' && e.key <= '9') {
+          AudioSynth.play('click');
+          handleKeyInput(e.key);
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          AudioSynth.play('click');
+          handleKeyInput('clear');
+        }
+      });
     }
   },
   
@@ -1492,7 +1832,6 @@ const gameEngine = {
       feedbackEl.classList.add('incorrect');
       
       let explanation = "";
-      let speakPrompt = "";
       
       // Analyze student error for specific concepts
       if (this.currentLevel === 1) {
@@ -1534,12 +1873,17 @@ const gameEngine = {
         // Play scale tilt rumble
         AudioSynth.play('shake');
         RenderEngine.renderLevel3Scale('l3-scale-box', tiltAngle);
+
+        // Optimization 2: Auto-trigger borrow knife animation when subtraction needs borrowing
+        if (q.data.op === '-' && q.data.f1.num < q.data.f2.num) {
+          RenderEngine.showLevel3BorrowAnimation(q.data.f1, q.data.f2, 'visual-interaction-area');
+        }
         
         // Check for denominator error (common misconception)
         if (denVal === q.data.f1.den + q.data.f2.den) {
           explanation = "哎呀！天平不平衡了！分母相加是錯的喔！同分母加減時，分母是不需要相加的呢！";
-        } else if (q.data.op === '-' && q.data.f1.num < q.data.f2.num && intVal === q.data.f1.int - q.data.f2.int) {
-          explanation = "天平傾斜了！分子不夠減時，要記得向整數借 1 ，化為同分母的分數再進行減法計算喔！";
+        } else if (q.data.op === '-' && q.data.f1.num < q.data.f2.num) {
+          explanation = `天平傾斜了！分子不夠減時，要記得向整數借 1 切成 ${MathRenderer.render(0, q.data.f1.den, q.data.f1.den)} 再減喔！請看上方的「🔪 魔法烘焙刀借位圖解」！`;
         } else {
           explanation = `配方比重不對！計算結果應該是 ${MathRenderer.render(q.ans.int, q.ans.num, q.ans.den)}。分母相同，僅將分子進行${q.data.op === '+' ? '加法' : '減法'}即可喔。`;
         }
@@ -3203,6 +3547,51 @@ const playtestEngine = {
           gameEngine.nextQuestion();
         }
       }
+    }
+
+    // ==================== 驗證優化一至三專屬斷言 ====================
+    this.log("正在驗證【優化一至三】教學鷹架與平板虛擬鍵盤...", 'info');
+
+    // 1. 驗證關卡 1「湊滿 1 塊自動打包裝盒」動態鷹架與單人虛擬小鍵盤
+    gameEngine.currentLevel = 1;
+    const convQ = QuestionGenerator.levels[1].find(item => item.type === 'convert_to_mixed');
+    gameEngine.questions = [convQ];
+    gameEngine.currentQuestionIdx = 0;
+    gameEngine.loadQuestion();
+
+    const singleKeypad = document.getElementById('single-virtual-keypad');
+    this.assert(singleKeypad !== null, "【優化一】單人自學模式已成功配置平板專屬虛擬數字小鍵盤", "找不到單人模式虛擬小鍵盤！");
+
+    const packBtn = document.getElementById('btn-magic-pack-all');
+    const packSummary = document.getElementById('l1-pack-summary');
+    this.assert(packBtn !== null && packSummary !== null, "【優化三】關卡 1 假換帶已配置「📦 湊滿 1 塊打包成完整蛋糕」互動按鈕與統計徽章", "找不到關卡 1 打包互動工具列！");
+
+    if (packBtn) {
+      packBtn.click();
+      const wholeCakes = document.querySelectorAll('#l1-interactive-fraction-bake .whole-cake');
+      const intValAfterPack = parseInt(document.getElementById('ans-int')?.value) || 0;
+      this.assert(wholeCakes.length === convQ.ans.int && intValAfterPack === convQ.ans.int, `【優化三】點擊魔法打包後，成功將滿盤碎片合成為 ${convQ.ans.int} 個純色實心完整蛋糕並自動連動答案格`, "打包合成實心圓餅或答案連動失敗！");
+    }
+
+    // 2. 驗證關卡 3「退位減法向整數借 1」魔法烘焙刀動態切分圖解
+    gameEngine.currentLevel = 3;
+    const borrowQ = QuestionGenerator.levels[3].find(item => item.data.op === '-' && item.data.f1.num < item.data.f2.num);
+    if (borrowQ) {
+      gameEngine.questions = [borrowQ];
+      gameEngine.currentQuestionIdx = 0;
+      gameEngine.loadQuestion();
+
+      const borrowDemoBtn = document.getElementById('btn-borrow-demo');
+      this.assert(borrowDemoBtn !== null, "【優化二】關卡 3 退位減法題已配置「🔪 魔法借位切刀示範」主動鷹架按鈕", "找不到退位減法借位示範按鈕！");
+
+      // 模擬學生在退位減法答錯，驗證是否自動彈出三步驟切刀借位圖解
+      document.getElementById('ans-int').value = 9;
+      document.getElementById('ans-num').value = 9;
+      gameEngine.submitAnswer();
+
+      const borrowPanel = document.getElementById('borrow-knife-animation');
+      const slicedDemoSvg = document.querySelector('#borrow-sliced-cake-demo svg');
+      this.assert(borrowPanel !== null && slicedDemoSvg !== null, "【優化二】退位減法答錯時，自動展開「🔪 魔法烘焙刀向整數借 1 切蛋糕」三步驟動態圖解與切分圓餅 SVG", "退位減法切刀借位圖解未成功渲染！");
     }
   },
   
