@@ -38,6 +38,12 @@
           <p>獨自探索四大魔法關卡，收集烘焙之星，破解分數迷思！</p>
         </button>
         
+        <button id="btn-ai-mode" class="mode-card glass-panel ai-card-highlight" onclick="gameEngine.switchScreen('ai-setup')">
+          <div class="card-icon">🎂</div>
+          <h2>單人 AI 挑戰賽</h2>
+          <p>皇家結婚蛋糕疊疊樂！挑戰法國主廚皮埃爾，比誰先疊出 10 層蛋糕！</p>
+        </button>
+
         <button id="btn-duel-mode" class="mode-card glass-panel" onclick="gameEngine.switchScreen('duel-setup')">
           <div class="card-icon">⚔️</div>
           <h2>雙人對決模式</h2>
@@ -262,6 +268,169 @@
           </div>
         </div>
       </div>
+    <!-- ==================== AI CHALLENGE SETUP SCREEN ==================== -->
+    <section id="ai-setup-screen" class="screen">
+      <div class="screen-header">
+        <button class="btn-back" onclick="gameEngine.switchScreen('home')">⬅ 回首頁</button>
+        <h2>🎂 單人 AI 挑戰賽設定</h2>
+      </div>
+      
+      <div class="setup-container glass-panel">
+        <div class="ai-intro-card">
+          <div class="ai-intro-avatar">👨‍🍳</div>
+          <div class="ai-intro-text">
+            <h3>對手：法國鬍子主廚皮埃爾 (Chef Pierre)</h3>
+            <p>國王下令為皇家婚禮特製多層結婚蛋糕！比比看誰能以最快、最精準的分數魔法，率先疊滿目標層數登上皇家特級甜點王！</p>
+          </div>
+        </div>
+
+        <h3>選擇挑戰的主題關卡</h3>
+        <div class="duel-level-grid">
+          <button class="duel-level-btn ai-level-btn active" onclick="aiEngine.selectLevel(1)">
+            <span>關卡 1</span> 認識與互換
+          </button>
+          <button class="duel-level-btn ai-level-btn" onclick="aiEngine.selectLevel(2)">
+            <span>關卡 2</span> 分數比大小
+          </button>
+          <button class="duel-level-btn ai-level-btn" onclick="aiEngine.selectLevel(3)">
+            <span>關卡 3</span> 同分母加減
+          </button>
+          <button class="duel-level-btn ai-level-btn" onclick="aiEngine.selectLevel(4)">
+            <span>關卡 4</span> 分數整數倍
+          </button>
+          <button class="duel-level-btn ai-level-btn" onclick="aiEngine.selectLevel(0)">
+            <span>關卡 0</span> 🎲 全單元綜合大挑戰
+          </button>
+        </div>
+        
+        <div class="setup-row">
+          <label for="ai-difficulty-select">主廚皮埃爾實力：</label>
+          <select id="ai-difficulty-select" class="glass-select" onchange="aiEngine.onDifficultyChange(this.value)">
+            <option value="easy">⭐ 輕鬆 (見習學徒・思考12~15s・落後放水)</option>
+            <option value="normal" selected>⭐⭐ 標準 (熟練師傅・思考8~10s・節奏穩定)</option>
+            <option value="hard">⭐⭐⭐ 挑戰 (傳奇主廚・思考4.5~6.5s・法式快嘴)</option>
+          </select>
+        </div>
+
+        <div class="setup-row">
+          <label for="ai-target-select">皇家蛋糕目標高度：</label>
+          <select id="ai-target-select" class="glass-select">
+            <option value="5">5 層 (快速挑戰賽)</option>
+            <option value="10" selected>10 層 (標準皇家婚宴・推薦)</option>
+            <option value="15">15 層 (奢華大師馬拉松)</option>
+          </select>
+        </div>
+
+        <div class="ai-special-rules">
+          <div class="rule-tag">✨ <strong>連續答對 (Combo ≥ 2)</strong> 或 <strong>帶分數題答對</strong>：一次加疊 <strong>2 層豪華雙層蛋糕</strong>！</div>
+          <div class="rule-tag">🛡️ <strong>教學安全閥</strong>：答錯出現迷思提示時，主廚皮埃爾會<strong>立即暫停計時</strong>，讓你安心看懂錯因再繼續！</div>
+        </div>
+        
+        <button id="btn-start-ai-challenge" class="btn-primary start-duel-btn" onclick="aiEngine.startChallenge()">出發挑戰皮埃爾主廚！🎂</button>
+      </div>
+    </section>
+
+    <!-- ==================== AI CHALLENGE GAME SCREEN ==================== -->
+    <section id="ai-screen" class="screen">
+      <div class="duel-top-bar">
+        <button class="btn-back-small" onclick="aiEngine.exitToHome()">放棄挑戰</button>
+        <div class="duel-title-center" id="ai-title-display">🎂 皇家結婚蛋糕疊疊樂 🎂</div>
+        <div class="duel-limit-info">
+          目標：率先疊滿 <span id="ai-target-display">10</span> 層
+          <span id="ai-diff-badge" class="ai-diff-tag">⭐⭐ 標準</span>
+        </div>
+      </div>
+      
+      <!-- 皇家蛋糕塔競技台 (Side-by-side Cake Towers) -->
+      <div class="cake-arena glass-panel">
+        <!-- 玩家蛋糕塔 (左側) -->
+        <div class="cake-tower-card player-tower-card">
+          <div class="tower-header">
+            <span class="tower-avatar">🧑‍🍳</span>
+            <div class="tower-meta">
+              <span class="tower-owner">你的蛋糕塔</span>
+              <span class="tower-layer-count"><strong id="player-layers-val">0</strong> / <span id="player-layers-max">10</span> 層</span>
+            </div>
+            <div id="player-combo-badge" class="combo-badge hidden">🔥 Combo x2! +2層</div>
+          </div>
+          <div class="cake-tower-stage" id="player-cake-stage">
+            <div class="crown-topper hidden" id="player-crown">👑</div>
+            <div class="cake-layers-stack" id="player-cake-layers">
+              <!-- Dynamically stacked cake tiers -->
+            </div>
+            <div class="cake-pedestal">🏛️ 皇家金盤</div>
+          </div>
+        </div>
+
+        <!-- 中央皮埃爾競技狀態與對話 (中央) -->
+        <div class="pierre-center-panel">
+          <div class="pierre-portrait">
+            <div class="pierre-face-emoji" id="pierre-emoji">👨‍🍳</div>
+            <div class="pierre-name">主廚皮埃爾</div>
+          </div>
+
+          <div class="pierre-speech-bubble" id="pierre-bubble">
+            <span class="bubble-arrow"></span>
+            <p id="pierre-speech-text">Bonjour! 準備好見識皇家主廚的手藝了嗎？</p>
+          </div>
+
+          <!-- 主廚思考/備料進度條 -->
+          <div class="pierre-progress-box">
+            <div class="pierre-progress-header">
+              <span id="pierre-status-icon">⏳</span>
+              <span id="pierre-status-desc">皮埃爾正在揉麵糰...</span>
+              <span id="safety-valve-badge" class="safety-valve-badge hidden">⏸️ 主廚暫停中</span>
+            </div>
+            <div class="pierre-progress-bar">
+              <div class="pierre-progress-fill" id="pierre-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 皮埃爾蛋糕塔 (右側) -->
+        <div class="cake-tower-card pierre-tower-card">
+          <div class="tower-header">
+            <span class="tower-avatar">👨‍🍳</span>
+            <div class="tower-meta">
+              <span class="tower-owner">皮埃爾的蛋糕塔</span>
+              <span class="tower-layer-count"><strong id="pierre-layers-val">0</strong> / <span id="pierre-layers-max">10</span> 層</span>
+            </div>
+          </div>
+          <div class="cake-tower-stage" id="pierre-cake-stage">
+            <div class="crown-topper hidden" id="pierre-crown">👑</div>
+            <div class="cake-layers-stack" id="pierre-cake-layers">
+              <!-- Dynamically stacked cake tiers -->
+            </div>
+            <div class="cake-pedestal">🏛️ 巴黎銀盤</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 學生答題工作區 -->
+      <div class="ai-workspace glass-panel">
+        <div class="duel-question-box">
+          <button class="btn-sound-small" onclick="aiEngine.speakCurrentQuestion()">🔊 讀題</button>
+          <div id="ai-question-text" class="duel-q-text">載入題目中...</div>
+        </div>
+        
+        <div id="ai-visual-area" class="duel-visual-area"></div>
+        
+        <div class="duel-input-area">
+          <div id="ai-inputs" class="inputs-container small-inputs"></div>
+          <button id="ai-submit-btn" class="btn-primary-small" onclick="aiEngine.submitAnswer()">提交配方 🎂</button>
+        </div>
+        
+        <div id="ai-feedback" class="duel-feedback hidden"></div>
+        
+        <!-- 教學安全閥：迷思回饋膠囊 -->
+        <div id="ai-pill-feedback" class="duel-pill-feedback hidden">
+          <div class="pill-content">
+            <span class="pill-icon">💡</span>
+            <div class="pill-text" id="ai-pill-text">提示文字</div>
+          </div>
+          <button class="btn-pill-resume" onclick="aiEngine.resumeFromSafetyValve()">我知道了，繼續挑戰！▶️</button>
+        </div>
+      </div>
     </section>
 
   </div> <!-- /app-container -->
@@ -298,6 +467,22 @@
       <p id="winner-desc">烘焙屋的特級廚師誕生了！</p>
       <div class="modal-actions">
         <button class="btn-primary" onclick="gameEngine.switchScreen('home'); gameEngine.toggleWinnerModal(false);">回烘焙屋大廳</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AI CHALLENGE GAMEOVER MODAL ==================== -->
+  <div id="ai-gameover-modal" class="modal-overlay hidden">
+    <div class="modal-content glass-panel winner-card" id="ai-modal-card">
+      <div class="winner-trophy" id="ai-modal-icon">👑</div>
+      <h2 id="ai-modal-title">恭喜榮登皇家特級甜點王！</h2>
+      <p id="ai-modal-desc">你成功以精湛的分數魔法率先完成 10 層皇家結婚蛋糕！皮埃爾主廚甘拜下風！</p>
+      <div class="modal-stats" id="ai-modal-stats" style="margin: 15px 0; font-size: 1.1rem; color: var(--magic-gold);">
+        <!-- Stats summary -->
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="aiEngine.toggleGameOverModal(false); gameEngine.switchScreen('ai-setup');">再挑戰一次 🔄</button>
+        <button class="btn-primary" onclick="aiEngine.toggleGameOverModal(false); gameEngine.switchScreen('home');">回烘焙屋大廳 🏠</button>
       </div>
     </div>
   </div>

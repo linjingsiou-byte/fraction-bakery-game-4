@@ -176,7 +176,7 @@ button {
 /* ==================== HOME SCREEN ==================== */
 #home-screen {
   text-align: center;
-  max-width: 800px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
@@ -218,8 +218,8 @@ button {
 
 .mode-select-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
   margin-bottom: 40px;
 }
 .mode-card {
@@ -1436,4 +1436,366 @@ button {
   .mode-select-grid {
     grid-template-columns: 1fr;
   }
+  .cake-arena {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .pierre-center-panel {
+    order: -1;
+  }
 }
+
+/* ==================== AI CHALLENGE & CAKE TOWER BUILDER ==================== */
+.ai-card-highlight {
+  border-color: hsla(330, 85%, 65%, 0.4);
+  background: linear-gradient(145deg, rgba(255, 105, 180, 0.08) 0%, rgba(255, 215, 0, 0.06) 100%), var(--glass-bg);
+}
+.ai-card-highlight:hover {
+  border-color: hsl(330, 85%, 70%) !important;
+  box-shadow: 0 12px 35px rgba(255, 105, 180, 0.35) !important;
+}
+
+.ai-intro-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+.ai-intro-avatar {
+  font-size: 3rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.ai-intro-text h3 {
+  font-size: 1.15rem;
+  color: var(--magic-gold);
+  margin-bottom: 6px;
+}
+.ai-intro-text p {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ai-special-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0 24px;
+  background: rgba(255, 215, 0, 0.06);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.rule-tag {
+  font-size: 0.92rem;
+  color: #fff;
+  line-height: 1.45;
+}
+.rule-tag strong {
+  color: var(--magic-gold);
+}
+
+.ai-diff-tag {
+  background: rgba(255, 215, 0, 0.2);
+  color: var(--magic-gold-light);
+  border: 1px solid var(--magic-gold);
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+/* Cake Arena Layout */
+.cake-arena {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding: 18px;
+  min-height: 380px;
+}
+
+.cake-tower-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 14px;
+}
+.player-tower-card {
+  border-color: rgba(76, 175, 80, 0.4);
+  box-shadow: inset 0 0 20px rgba(76, 175, 80, 0.1);
+}
+.pierre-tower-card {
+  border-color: rgba(255, 152, 0, 0.4);
+  box-shadow: inset 0 0 20px rgba(255, 152, 0, 0.1);
+}
+
+.tower-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.tower-avatar {
+  font-size: 1.8rem;
+}
+.tower-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-grow: 1;
+  margin-left: 10px;
+}
+.tower-owner {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+.tower-layer-count {
+  font-size: 1.15rem;
+  color: var(--magic-gold);
+  font-weight: bold;
+}
+
+.combo-badge {
+  position: absolute;
+  right: 0;
+  top: -8px;
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 65, 108, 0.6);
+  animation: pulseGlow 1.2s infinite alternate;
+}
+@keyframes pulseGlow {
+  0% { transform: scale(1); box-shadow: 0 0 8px rgba(255, 65, 108, 0.5); }
+  100% { transform: scale(1.08); box-shadow: 0 0 16px rgba(255, 65, 108, 0.9); }
+}
+
+/* Cake Stage and Layers */
+.cake-tower-stage {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  min-height: 250px;
+  padding: 10px 0 0;
+}
+
+.crown-topper {
+  font-size: 2.4rem;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 12px gold);
+  animation: crownDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes crownDrop {
+  0% { transform: translateY(-40px) scale(0.3); opacity: 0; }
+  70% { transform: translateY(6px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.cake-layers-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 6px;
+  max-height: 220px;
+  overflow: hidden;
+}
+
+.cake-tier {
+  border-radius: 6px;
+  height: 18px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.cake-tier.newly-added {
+  animation: cakeBounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes cakeBounceIn {
+  0% { transform: scaleY(0) translateY(20px); opacity: 0; }
+  70% { transform: scaleY(1.3) translateY(-4px); opacity: 1; }
+  100% { transform: scaleY(1) translateY(0); opacity: 1; }
+}
+
+.cake-tier.combo-double {
+  height: 36px;
+  background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 50%, #fad0c4 100%) !important;
+  border: 2px solid gold;
+  box-shadow: 0 4px 15px rgba(255, 117, 140, 0.6), inset 0 2px 5px rgba(255, 255, 255, 0.7);
+}
+
+.tier-strawberry { background: linear-gradient(135deg, #f857a6, #ff5858); }
+.tier-vanilla { background: linear-gradient(135deg, #f6d365, #fda085); }
+.tier-matcha { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+.tier-blueberry { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+.tier-chocolate { background: linear-gradient(135deg, #664936, #9b6b47); }
+.tier-lemon { background: linear-gradient(135deg, #f7ff00, #db36a4); }
+
+.cake-pedestal {
+  width: 90%;
+  text-align: center;
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 100%);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  color: var(--magic-gold-light);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+/* Pierre Center Panel */
+.pierre-center-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 14px;
+}
+.pierre-portrait {
+  text-align: center;
+}
+.pierre-face-emoji {
+  font-size: 3.5rem;
+  animation: chefBounce 3s ease-in-out infinite;
+}
+@keyframes chefBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.pierre-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--magic-gold);
+  margin-top: 4px;
+}
+
+.pierre-speech-bubble {
+  position: relative;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  color: #fff;
+  text-align: center;
+  margin: 12px 0;
+  width: 90%;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+.bubble-arrow {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid rgba(255, 255, 255, 0.2);
+}
+
+.pierre-progress-box {
+  width: 92%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pierre-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.safety-valve-badge {
+  background: hsla(145, 75%, 45%, 0.2);
+  border: 1px solid var(--success-green);
+  color: var(--success-green);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-weight: bold;
+  animation: pulseSafety 1.5s infinite;
+}
+@keyframes pulseSafety {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; filter: drop-shadow(0 0 6px var(--success-green)); }
+}
+
+.pierre-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pierre-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff9966, #ff5e62);
+  border-radius: 6px;
+  transition: width 0.1s linear;
+}
+
+/* AI Workspace */
+.ai-workspace {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.btn-pill-resume {
+  background: linear-gradient(135deg, var(--success-green), #27ae60);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4);
+  transition: transform 0.2s;
+}
+.btn-pill-resume:hover {
+  transform: scale(1.05);
+}
+

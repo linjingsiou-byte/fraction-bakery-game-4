@@ -132,7 +132,54 @@ const AudioSynth = {
       this.playBuzzerOpen();
     } else if (type === 'softClick') {
       this.playSoftClick();
+    } else if (type === 'cakeStack') {
+      this.playCakeStack();
+    } else if (type === 'doubleCake') {
+      this.playDoubleCake();
     }
+  },
+
+  playCakeStack() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.15);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } catch(e) {}
+  },
+
+  playDoubleCake() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.05);
+        gain.gain.setValueAtTime(0, now + i * 0.05);
+        gain.gain.linearRampToValueAtTime(0.18, now + i * 0.05 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.05);
+        osc.stop(now + i * 0.05 + 0.35);
+      });
+    } catch(e) {}
   },
 
   // 搶答/競速開放警示音 (清脆叮咚三連音：E5 -> B5 -> E6)
@@ -1004,6 +1051,9 @@ const gameEngine = {
     VoiceManager.stop();
     if (typeof duelEngine !== 'undefined' && duelEngine.clearBattleThinkingTimer) {
       duelEngine.clearBattleThinkingTimer();
+    }
+    if (typeof aiEngine !== 'undefined' && aiEngine.clearAiThinkingTimer) {
+      aiEngine.clearAiThinkingTimer();
     }
     
     // Remove active from all screens
@@ -2155,7 +2205,658 @@ const duelEngine = {
   }
 };
 
-// ==================== 8. DEVELOPER AUTOMATED PLAYTEST ENGINE ====================
+// ==================== 8. AI CHALLENGE ENGINE (Pierre Cake Tower) ====================
+const aiEngine = {
+  currentLevel: 1, // 0 for mixed, 1~4 for levels
+  difficulty: 'normal',
+  targetLayers: 10,
+  playerLayers: 0,
+  pierreLayers: 0,
+  comboCount: 0,
+  currentQuestion: null,
+  playerChoice: null,
+  activeCell: null,
+  isPausedForSafety: false,
+  isGameOver: false,
+  
+  // Timer & state
+  aiThinkingTimer: null,
+  aiThinkInterval: null,
+  aiThinkDuration: 8000,
+  aiThinkStartTime: 0,
+  aiRemainingMs: 8000,
+
+  cakeFlavors: [
+    { name: '草莓奶油', class: 'tier-strawberry', emoji: '🍓' },
+    { name: '香草卡士達', class: 'tier-vanilla', emoji: '🧈' },
+    { name: '靜岡抹茶', class: 'tier-matcha', emoji: '🍵' },
+    { name: '藍莓千層', class: 'tier-blueberry', emoji: '🫐' },
+    { name: '濃郁巧克力', class: 'tier-chocolate', emoji: '🍫' },
+    { name: '檸檬糖霜', class: 'tier-lemon', emoji: '🍋' }
+  ],
+
+  difficultyConfig: {
+    easy: { name: '見習學徒', tag: '⭐ 輕鬆', minSec: 12, maxSec: 15, accuracy: 0.75, rubberBand: 4 },
+    normal: { name: '熟練師傅', tag: '⭐⭐ 標準', minSec: 8, maxSec: 10, accuracy: 0.90, rubberBand: 0 },
+    hard: { name: '傳奇主廚', tag: '⭐⭐⭐ 挑戰', minSec: 4.5, maxSec: 6.5, accuracy: 1.0, rubberBand: 0 }
+  },
+
+  pierreQuotes: {
+    start: [
+      "Bonjour! 準備好見識皇家主廚的手藝了嗎？",
+      "疊蛋糕需要精準的分數比例，看我的！",
+      "今天的奶油非常順滑，我可不會輕易認輸喔！"
+    ],
+    pierreBuild: [
+      "Voilà! 又疊上了一層香草奶油！",
+      "Magnifique! 這層蛋糕烤得真蓬鬆！",
+      "C'est délicieux! 國王一定會滿意這層的！",
+      "嘿嘿！距離皇家大皇冠又更近一步囉！"
+    ],
+    pierreMiss: [
+      "Oups! 麵粉灑出來了...需要重打一份奶油！",
+      "哎呀！火候稍微大了一點點，這次不算！",
+      "Mon dieu! 攪拌器竟然卡住了！"
+    ],
+    playerSurge: [
+      "C'est incroyable! 你的手速竟然這麼快！",
+      "太厲害了！你這層雙層蛋糕簡直是藝術品！",
+      "Oh là là! 我得加快攪拌速度了！"
+    ],
+    pierreNearWin: [
+      "Oh là là! 我的皇冠蛋糕快完成囉！",
+      "只差最後幾層了，特級甜點王是我的啦！"
+    ],
+    playerWin: [
+      "Incroyable! 你的分數魔法比我的烤箱還神奇！恭喜你！",
+      "我主廚皮埃爾甘拜下風，你就是真正的皇家甜點王！"
+    ],
+    pierreWin: [
+      "Merci! 承讓囉！我的皇家結婚蛋糕大功告成！",
+      "下次再來挑戰我吧！多練習帶分數，你會更厲害的！"
+    ]
+  },
+
+  init() {
+    this.selectLevel(1);
+  },
+
+  selectLevel(lvl) {
+    this.currentLevel = lvl;
+    document.querySelectorAll('.ai-level-btn').forEach((btn, idx) => {
+      if ((lvl === 0 && idx === 4) || (lvl > 0 && idx === lvl - 1)) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    AudioSynth.play('click');
+  },
+
+  onDifficultyChange(val) {
+    this.difficulty = val;
+    AudioSynth.play('click');
+  },
+
+  speakCurrentQuestion() {
+    if (this.currentQuestion && this.currentQuestion.qText) {
+      VoiceManager.speak(this.currentQuestion.qText);
+    }
+  },
+
+  setPierreChatter(text, mood = 'normal') {
+    const bubble = document.getElementById('pierre-speech-text');
+    const emoji = document.getElementById('pierre-emoji');
+    if (bubble) bubble.innerText = text;
+    if (emoji) {
+      if (mood === 'surprised') emoji.innerText = '😲';
+      else if (mood === 'happy') emoji.innerText = '😄';
+      else if (mood === 'oops') emoji.innerText = '😓';
+      else if (mood === 'proud') emoji.innerText = '😎';
+      else emoji.innerText = '👨‍🍳';
+    }
+  },
+
+  getRandomQuote(type) {
+    const list = this.pierreQuotes[type] || this.pierreQuotes.start;
+    return list[Math.floor(Math.random() * list.length)];
+  },
+
+  startChallenge() {
+    this.clearAiThinkingTimer();
+    this.isGameOver = false;
+    this.isPausedForSafety = false;
+    this.playerLayers = 0;
+    this.pierreLayers = 0;
+    this.comboCount = 0;
+
+    const diffSelect = document.getElementById('ai-difficulty-select');
+    if (diffSelect) this.difficulty = diffSelect.value;
+    const targetSelect = document.getElementById('ai-target-select');
+    if (targetSelect) this.targetLayers = parseInt(targetSelect.value) || 10;
+
+    // UI Updates
+    document.getElementById('ai-target-display').innerText = this.targetLayers;
+    document.getElementById('player-layers-max').innerText = this.targetLayers;
+    document.getElementById('pierre-layers-max').innerText = this.targetLayers;
+    document.getElementById('player-layers-val').innerText = '0';
+    document.getElementById('pierre-layers-val').innerText = '0';
+
+    const cfg = this.difficultyConfig[this.difficulty] || this.difficultyConfig.normal;
+    document.getElementById('ai-diff-badge').innerText = cfg.tag;
+
+    // Reset stages
+    document.getElementById('player-cake-layers').innerHTML = '';
+    document.getElementById('pierre-cake-layers').innerHTML = '';
+    document.getElementById('player-crown').classList.add('hidden');
+    document.getElementById('pierre-crown').classList.add('hidden');
+    document.getElementById('player-combo-badge').classList.add('hidden');
+    document.getElementById('ai-pill-feedback').classList.add('hidden');
+    document.getElementById('safety-valve-badge').classList.add('hidden');
+
+    this.setPierreChatter(this.getRandomQuote('start'), 'normal');
+
+    gameEngine.switchScreen('ai');
+
+    // Next question and start AI timer
+    this.nextQuestion();
+    this.startAiThinkingTimer();
+  },
+
+  nextQuestion() {
+    let pool = [];
+    if (this.currentLevel === 0) {
+      for (let l = 1; l <= 4; l++) {
+        pool = pool.concat(QuestionGenerator.levels[l]);
+      }
+    } else {
+      pool = QuestionGenerator.levels[this.currentLevel];
+    }
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    this.currentQuestion = q;
+    this.playerChoice = null;
+
+    document.getElementById('ai-question-text').innerText = q.qText;
+    document.getElementById('ai-feedback').classList.add('hidden');
+
+    this.renderWorkspace(q);
+
+    // Auto speech if enabled
+    const autoTts = document.getElementById('tts-auto-toggle');
+    if (autoTts && autoTts.checked) {
+      this.speakCurrentQuestion();
+    }
+  },
+
+  renderWorkspace(q) {
+    const visualArea = document.getElementById('ai-visual-area');
+    const inputsArea = document.getElementById('ai-inputs');
+    visualArea.innerHTML = '';
+    inputsArea.innerHTML = '';
+
+    // Determine which level layout to use based on question structure
+    let lvl = this.currentLevel;
+    if (lvl === 0) {
+      if (q.type === 'classify' || q.type === 'convert_to_mixed' || q.type === 'convert_to_improper') lvl = 1;
+      else if (q.data && q.data.f1 && q.data.f2 && !q.data.op) lvl = 2;
+      else if (q.data && q.data.op) lvl = 3;
+      else if (q.data && q.data.factor) lvl = 4;
+    }
+
+    if (lvl === 1) {
+      if (q.type === 'classify') {
+        const mathEq = document.createElement('div');
+        mathEq.style.fontSize = '2.5rem';
+        mathEq.innerHTML = MathRenderer.render(q.data.int, q.data.num, q.data.den);
+        visualArea.appendChild(mathEq);
+
+        inputsArea.innerHTML = `
+          <div class="choices-layout">
+            <button class="btn-choice ai-c" data-choice="true" style="padding:10px 16px; font-size:1.1rem;">真分數</button>
+            <button class="btn-choice ai-c" data-choice="improper" style="padding:10px 16px; font-size:1.1rem;">假分數</button>
+            <button class="btn-choice ai-c" data-choice="mixed" style="padding:10px 16px; font-size:1.1rem;">帶分數</button>
+          </div>
+        `;
+        inputsArea.querySelectorAll('.ai-c').forEach(btn => {
+          btn.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            inputsArea.querySelectorAll('.ai-c').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            this.playerChoice = btn.getAttribute('data-choice');
+            AudioSynth.play('click');
+          });
+        });
+      } else {
+        const mathEq = document.createElement('div');
+        mathEq.style.fontSize = '2.2rem';
+        mathEq.innerHTML = `${MathRenderer.render(q.data.int, q.data.num, q.data.den)} = ？`;
+        visualArea.appendChild(mathEq);
+
+        inputsArea.innerHTML = `
+          <div class="fraction-input-block" style="font-size:1.2rem;">
+            <input type="text" id="ai-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:42px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
+            <div class="frac-input-group">
+              <input type="text" id="ai-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:38px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
+              <div class="frac-input-divider" style="width:38px;"></div>
+              <input type="text" id="ai-ans-den" placeholder="母" class="frac-input-box" style="width:38px; height:30px; font-size:1rem;" value="${q.data.den}" readonly inputmode="none">
+            </div>
+          </div>
+          ${this.renderKeypadHTML()}
+        `;
+        this.setupKeypadBindings();
+      }
+    } else if (lvl === 2) {
+      visualArea.innerHTML = `
+        <div style="display:flex; align-items:center; gap:14px; font-size:2rem;">
+          <div>${MathRenderer.render(q.data.f1.int, q.data.f1.num, q.data.f1.den)}</div>
+          <div id="ai-comp-slot" style="border:2px dashed var(--magic-gold); padding:2px 14px; min-width:40px; text-align:center;">?</div>
+          <div>${MathRenderer.render(q.data.f2.int, q.data.f2.num, q.data.f2.den)}</div>
+        </div>
+      `;
+      inputsArea.innerHTML = `
+        <div class="comparison-buttons">
+          <button class="btn-comparison-sign ai-c" data-sign=">" style="width:46px; height:46px; font-size:1.3rem;">&gt;</button>
+          <button class="btn-comparison-sign ai-c" data-sign="=" style="width:46px; height:46px; font-size:1.3rem;">=</button>
+          <button class="btn-comparison-sign ai-c" data-sign="<" style="width:46px; height:46px; font-size:1.3rem;">&lt;</button>
+        </div>
+      `;
+      inputsArea.querySelectorAll('.ai-c').forEach(btn => {
+        btn.addEventListener('pointerdown', (e) => {
+          e.stopPropagation();
+          inputsArea.querySelectorAll('.ai-c').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          const sign = btn.getAttribute('data-sign');
+          this.playerChoice = sign;
+          document.getElementById('ai-comp-slot').innerText = sign;
+          AudioSynth.play('click');
+        });
+      });
+    } else if (lvl === 3) {
+      visualArea.innerHTML = `
+        <div style="font-size:2rem;">
+          ${MathRenderer.render(q.data.f1.int, q.data.f1.num, q.data.f1.den)} 
+          ${q.data.op} 
+          ${MathRenderer.render(q.data.f2.int, q.data.f2.num, q.data.f2.den)} = ？
+        </div>
+      `;
+      inputsArea.innerHTML = `
+        <div class="fraction-input-block" style="font-size:1.2rem;">
+          <input type="text" id="ai-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:42px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
+          <div class="frac-input-group">
+            <input type="text" id="ai-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:38px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
+            <div class="frac-input-divider" style="width:38px;"></div>
+            <input type="text" id="ai-ans-den" placeholder="母" class="frac-input-box" style="width:38px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly inputmode="none">
+          </div>
+        </div>
+        ${this.renderKeypadHTML()}
+      `;
+      this.setupKeypadBindings();
+    } else if (lvl === 4) {
+      visualArea.innerHTML = `
+        <div style="font-size:2rem;">
+          ${MathRenderer.render(q.data.f1.int, q.data.f1.num, q.data.f1.den)} 
+          × ${q.data.factor} = ？
+        </div>
+      `;
+      inputsArea.innerHTML = `
+        <div class="fraction-input-block" style="font-size:1.2rem;">
+          <input type="text" id="ai-ans-int" placeholder="整" class="int-input-box duel-cell" style="width:42px; height:50px; font-size:1.2rem;" value="0" readonly inputmode="none">
+          <div class="frac-input-group">
+            <input type="text" id="ai-ans-num" placeholder="子" class="frac-input-box duel-cell" style="width:38px; height:30px; font-size:1rem;" value="" readonly inputmode="none">
+            <div class="frac-input-divider" style="width:38px;"></div>
+            <input type="text" id="ai-ans-den" placeholder="母" class="frac-input-box" style="width:38px; height:30px; font-size:1rem;" value="${q.data.f1.den}" readonly inputmode="none">
+          </div>
+        </div>
+        ${this.renderKeypadHTML()}
+      `;
+      this.setupKeypadBindings();
+    }
+  },
+
+  renderKeypadHTML() {
+    return `
+      <div class="duel-virtual-keypad">
+        <button type="button" class="duel-key-btn ai-key" data-key="1">1</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="2">2</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="3">3</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="4">4</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="5">5</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="6">6</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="7">7</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="8">8</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="9">9</button>
+        <button type="button" class="duel-key-btn ai-key" data-key="0">0</button>
+        <button type="button" class="duel-key-btn ai-key key-clear" data-key="clear">⌫ 清除</button>
+      </div>
+    `;
+  },
+
+  setupKeypadBindings() {
+    const intBox = document.getElementById('ai-ans-int');
+    const numBox = document.getElementById('ai-ans-num');
+    if (!intBox || !numBox) return;
+
+    const setActive = (cell) => {
+      intBox.classList.remove('active-cell');
+      numBox.classList.remove('active-cell');
+      cell.classList.add('active-cell');
+      this.activeCell = cell;
+    };
+
+    intBox.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      setActive(intBox);
+      AudioSynth.play('click');
+    });
+
+    numBox.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      setActive(numBox);
+      AudioSynth.play('click');
+    });
+
+    setActive(numBox);
+
+    document.querySelectorAll('.ai-key').forEach(btn => {
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        AudioSynth.play('click');
+        const key = btn.getAttribute('data-key');
+        const activeCell = this.activeCell || numBox;
+
+        if (key === 'clear') {
+          activeCell.value = (activeCell === intBox ? '0' : '');
+        } else {
+          const cur = activeCell.value;
+          if (cur === '0' || cur === '') {
+            activeCell.value = key;
+          } else if (cur.length < 2) {
+            activeCell.value = cur + key;
+          }
+        }
+      });
+    });
+  },
+
+  startAiThinkingTimer() {
+    this.clearAiThinkingTimer();
+    if (this.isGameOver) return;
+
+    const cfg = this.difficultyConfig[this.difficulty] || this.difficultyConfig.normal;
+    let sec = cfg.minSec + Math.random() * (cfg.maxSec - cfg.minSec);
+
+    // Rubber-banding
+    if (this.difficulty === 'easy' && (this.pierreLayers - this.playerLayers >= 2)) {
+      sec += cfg.rubberBand;
+    }
+
+    this.aiThinkDuration = sec * 1000;
+    this.aiThinkStartTime = Date.now();
+    this.aiRemainingMs = this.aiThinkDuration;
+
+    const fill = document.getElementById('pierre-progress-fill');
+    const desc = document.getElementById('pierre-status-desc');
+    if (desc) desc.innerText = '皮埃爾正在揉麵糰擠奶油...';
+
+    this.aiThinkInterval = setInterval(() => {
+      if (this.isPausedForSafety) return;
+
+      const elapsed = Date.now() - this.aiThinkStartTime;
+      const pct = Math.min(100, (elapsed / this.aiThinkDuration) * 100);
+      if (fill) fill.style.width = `${pct}%`;
+
+      if (elapsed >= this.aiThinkDuration) {
+        this.clearAiThinkingTimer();
+        this.onAiThinkingComplete();
+      }
+    }, 100);
+  },
+
+  pauseAiTimerForSafety() {
+    this.isPausedForSafety = true;
+    const elapsed = Date.now() - this.aiThinkStartTime;
+    this.aiRemainingMs = Math.max(500, this.aiThinkDuration - elapsed);
+
+    const badge = document.getElementById('safety-valve-badge');
+    if (badge) badge.classList.remove('hidden');
+
+    const desc = document.getElementById('pierre-status-desc');
+    if (desc) desc.innerText = '⏸️ 主廚暫停中 (等待學徒看懂提示)...';
+  },
+
+  resumeFromSafetyValve() {
+    this.isPausedForSafety = false;
+    document.getElementById('ai-pill-feedback').classList.add('hidden');
+    document.getElementById('safety-valve-badge').classList.add('hidden');
+
+    const desc = document.getElementById('pierre-status-desc');
+    if (desc) desc.innerText = '皮埃爾正在揉麵糰擠奶油...';
+
+    // Resume remaining timer
+    this.aiThinkStartTime = Date.now() - (this.aiThinkDuration - this.aiRemainingMs);
+    AudioSynth.play('click');
+  },
+
+  clearAiThinkingTimer() {
+    if (this.aiThinkInterval) {
+      clearInterval(this.aiThinkInterval);
+      this.aiThinkInterval = null;
+    }
+    const fill = document.getElementById('pierre-progress-fill');
+    if (fill) fill.style.width = '0%';
+  },
+
+  onAiThinkingComplete() {
+    if (this.isGameOver) return;
+
+    const cfg = this.difficultyConfig[this.difficulty] || this.difficultyConfig.normal;
+    const isCorrect = Math.random() < cfg.accuracy;
+
+    if (isCorrect) {
+      this.pierreLayers++;
+      document.getElementById('pierre-layers-val').innerText = this.pierreLayers;
+
+      this.addCakeTier('pierre', 1, false);
+      AudioSynth.play('cakeStack');
+
+      if (this.pierreLayers >= this.targetLayers - 2 && this.pierreLayers < this.targetLayers) {
+        this.setPierreChatter(this.getRandomQuote('pierreNearWin'), 'proud');
+      } else {
+        this.setPierreChatter(this.getRandomQuote('pierreBuild'), 'happy');
+      }
+
+      if (this.pierreLayers >= this.targetLayers) {
+        this.handleGameOver('pierre');
+        return;
+      }
+    } else {
+      this.setPierreChatter(this.getRandomQuote('pierreMiss'), 'oops');
+      AudioSynth.play('shake');
+    }
+
+    this.startAiThinkingTimer();
+  },
+
+  addCakeTier(who, count, isCombo) {
+    const stack = document.getElementById(`${who}-cake-layers`);
+    if (!stack) return;
+
+    const flavorIdx = ((who === 'player' ? this.playerLayers : this.pierreLayers) - 1) % this.cakeFlavors.length;
+    const flavor = this.cakeFlavors[flavorIdx >= 0 ? flavorIdx : 0];
+
+    const tier = document.createElement('div');
+    tier.className = `cake-tier ${flavor.class} newly-added ${isCombo ? 'combo-double' : ''}`;
+    tier.style.width = `${Math.max(45, 95 - (stack.children.length * 3.5))}%`;
+    tier.innerHTML = isCombo ? `✨ 雙層豪華草莓塔 +2 ✨` : `${flavor.emoji} ${flavor.name}`;
+
+    stack.appendChild(tier);
+  },
+
+  submitAnswer() {
+    if (this.isGameOver) return;
+    const q = this.currentQuestion;
+    if (!q) return;
+
+    let isCorrect = false;
+    let userVal = null;
+    let isMixedBonus = false;
+
+    if (q.type === 'classify') {
+      isCorrect = (this.playerChoice === q.ans);
+    } else if (q.data && q.data.f1 && q.data.f2 && !q.data.op) {
+      isCorrect = (this.playerChoice === q.ans);
+    } else {
+      const intVal = parseInt(document.getElementById('ai-ans-int')?.value) || 0;
+      const numVal = parseInt(document.getElementById('ai-ans-num')?.value) || 0;
+      const denVal = parseInt(document.getElementById('ai-ans-den')?.value) || 1;
+
+      userVal = { int: intVal, num: numVal, den: denVal };
+
+      if (q.type === 'convert_to_mixed') {
+        isCorrect = (intVal === q.ans.int && numVal === q.ans.num && denVal === q.ans.den);
+        if (isCorrect && intVal > 0) isMixedBonus = true;
+      } else if (q.type === 'convert_to_improper') {
+        isCorrect = (intVal === 0 && numVal === q.ans.num && denVal === q.ans.den);
+      } else if (q.data && q.data.op) {
+        const totalUser = intVal * denVal + numVal;
+        const totalAns = q.ans.int * q.ans.den + q.ans.num;
+        isCorrect = (totalUser === totalAns && denVal === q.ans.den);
+        if (isCorrect && intVal > 0) isMixedBonus = true;
+      } else if (q.data && q.data.factor) {
+        const totalUser = intVal * denVal + numVal;
+        const totalAns = q.ans.int * q.ans.den + q.ans.num;
+        isCorrect = (totalUser === totalAns && denVal === q.ans.den);
+        if (isCorrect && intVal > 0) isMixedBonus = true;
+      }
+    }
+
+    const feedback = document.getElementById('ai-feedback');
+
+    if (isCorrect) {
+      this.comboCount++;
+      const isDouble = (this.comboCount >= 2 || isMixedBonus);
+      const layersToAdd = isDouble ? 2 : 1;
+
+      this.playerLayers += layersToAdd;
+      document.getElementById('player-layers-val').innerText = this.playerLayers;
+
+      const comboBadge = document.getElementById('player-combo-badge');
+      if (isDouble) {
+        comboBadge.innerText = this.comboCount >= 2 ? `🔥 Combo x${this.comboCount}! +2層` : `✨ 帶分數加成! +2層`;
+        comboBadge.classList.remove('hidden');
+        AudioSynth.play('doubleCake');
+        this.setPierreChatter(this.getRandomQuote('playerSurge'), 'surprised');
+      } else {
+        comboBadge.classList.add('hidden');
+        AudioSynth.play('cakeStack');
+      }
+
+      this.addCakeTier('player', layersToAdd, isDouble);
+
+      feedback.className = 'duel-feedback correct';
+      feedback.innerText = isDouble ? '🎉 太神了！一次完成雙層豪華蛋糕塔！(+2 層)' : '✨ 配方正確！成功疊上 1 層蛋糕！';
+      feedback.classList.remove('hidden');
+
+      if (this.playerLayers >= this.targetLayers) {
+        this.handleGameOver('player');
+        return;
+      }
+
+      setTimeout(() => {
+        if (!this.isGameOver) this.nextQuestion();
+      }, 700);
+
+    } else {
+      this.comboCount = 0;
+      document.getElementById('player-combo-badge').classList.add('hidden');
+      AudioSynth.play('incorrect');
+
+      this.pauseAiTimerForSafety();
+
+      const pill = document.getElementById('ai-pill-feedback');
+      const pillText = document.getElementById('ai-pill-text');
+
+      let tip = "仔細看好題目喔！分子代表取得的份數，分母代表一整塊平分切成幾份。";
+      if (q.type === 'classify') {
+        tip = "分子小於分母是真分數；分子大於或等於分母是假分數；整數帶著真分數是帶分數喔！";
+      } else if (q.data && q.data.f1 && q.data.f2 && !q.data.op) {
+        tip = "先比較整數部分；若整數相同或為0，再換成同分母觀察分子大小！";
+      } else if (q.data && q.data.op) {
+        tip = "同分母分數相加減，「分母保持不變」，只要將分子相加減喔！不夠減要跟整數借 1 換成假分數！";
+      } else if (q.data && q.data.factor) {
+        tip = "分數乘以整數代表累加多次，「分母保持不變」，只需要將分子乘以整數喔！";
+      }
+
+      pillText.innerText = tip;
+      pill.classList.remove('hidden');
+
+      feedback.className = 'duel-feedback incorrect';
+      feedback.innerText = '❌ 比例好像不太對喔！主廚已暫停計時，請看下方小法寶提示！';
+      feedback.classList.remove('hidden');
+    }
+  },
+
+  handleGameOver(winner) {
+    this.isGameOver = true;
+    this.clearAiThinkingTimer();
+
+    const playerCrown = document.getElementById('player-crown');
+    const pierreCrown = document.getElementById('pierre-crown');
+
+    if (winner === 'player') {
+      playerCrown.classList.remove('hidden');
+      AudioSynth.play('victory');
+      VoiceManager.speak("恭喜你！成功戰勝法國主廚皮埃爾，完成皇家結婚蛋糕！");
+      this.setPierreChatter(this.pierreQuotes.playerWin[0], 'happy');
+
+      this.toggleGameOverModal(true, {
+        isWin: true,
+        title: "👑 恭喜榮登皇家特級甜點王！",
+        desc: `太不可思議了！你以最精湛的分數魔法率先堆疊出 ${this.targetLayers} 層豪華結婚蛋糕！皮埃爾主廚甘拜下風！`,
+        stats: `你的蛋糕：${this.playerLayers} 層 🏆 | 皮埃爾主廚：${this.pierreLayers} 層`
+      });
+    } else {
+      pierreCrown.classList.remove('hidden');
+      AudioSynth.play('shake');
+      VoiceManager.speak("皮埃爾主廚率先完成了蛋糕！再接再厲，下次一定能贏！");
+      this.setPierreChatter(this.pierreQuotes.pierreWin[0], 'proud');
+
+      this.toggleGameOverModal(true, {
+        isWin: false,
+        title: "👨‍🍳 皮埃爾主廚率先完成了！",
+        desc: `皮埃爾主廚率先完成了 ${this.targetLayers} 層蛋糕！差一點點就追上了，熟練分數轉換後再來挑戰吧！`,
+        stats: `你的蛋糕：${this.playerLayers} 層 | 皮埃爾主廚：${this.pierreLayers} 層 👑`
+      });
+    }
+  },
+
+  toggleGameOverModal(show, data = {}) {
+    const modal = document.getElementById('ai-gameover-modal');
+    if (show) {
+      const icon = document.getElementById('ai-modal-icon');
+      const title = document.getElementById('ai-modal-title');
+      const desc = document.getElementById('ai-modal-desc');
+      const stats = document.getElementById('ai-modal-stats');
+
+      if (icon) icon.innerText = data.isWin ? '👑' : '👨‍🍳';
+      if (title) title.innerText = data.title;
+      if (desc) desc.innerText = data.desc;
+      if (stats) stats.innerText = data.stats;
+
+      modal.classList.remove('hidden');
+    } else {
+      modal.classList.add('hidden');
+    }
+  },
+
+  exitToHome() {
+    this.clearAiThinkingTimer();
+    this.isGameOver = true;
+    gameEngine.switchScreen('home');
+  }
+};
+
+// ==================== 9. DEVELOPER AUTOMATED PLAYTEST ENGINE ====================
 const playtestEngine = {
   active: false,
   logEl: null,
@@ -2343,6 +3044,8 @@ const playtestEngine = {
       this.assert(document.getElementById('level-select-screen') !== null, "關卡選擇 DOM 結構存在", "找不到關卡選擇 DOM");
       this.assert(document.getElementById('single-screen') !== null, "單人遊戲 DOM 結構存在", "找不到單人遊戲 DOM");
       this.assert(document.getElementById('duel-screen') !== null, "雙人遊戲 DOM 結構存在", "找不到雙人遊戲 DOM");
+      this.assert(document.getElementById('ai-setup-screen') !== null, "AI挑戰賽設定 DOM 結構存在", "找不到 AI 設定 DOM");
+      this.assert(document.getElementById('ai-screen') !== null, "AI挑戰賽遊戲 DOM 結構存在", "找不到 AI 挑戰賽 DOM");
       
       // Step 2: Check database question sizes
       for (let l = 1; l <= 4; l++) {
@@ -2356,6 +3059,11 @@ const playtestEngine = {
       // Step 4: Run duel mode tests
       if (this.active) {
         await this.runDuelModeTests();
+      }
+
+      // Step 5: Run AI challenge mode tests
+      if (this.active) {
+        await this.runAiChallengeTests();
       }
       
       // Conclude
@@ -2584,14 +3292,96 @@ const playtestEngine = {
     // Close winner modal and return
     gameEngine.switchScreen('home');
     gameEngine.toggleWinnerModal(false);
+  },
+
+  async runAiChallengeTests() {
+    this.log("開始測試單人 AI 挑戰賽模式 (皇家結婚蛋糕疊疊樂)...", 'info');
+    
+    // Switch to AI setup
+    gameEngine.switchScreen('ai-setup');
+    this.assert(gameEngine.currentScreen === 'ai-setup', "成功切換至單人 AI 挑戰賽設定大廳", "無法切換至 AI 設定大廳");
+
+    // Configure challenge: Level 1, easy, 5 layers target
+    aiEngine.selectLevel(1);
+    document.getElementById('ai-difficulty-select').value = 'easy';
+    document.getElementById('ai-target-select').value = '5';
+    
+    aiEngine.startChallenge();
+    this.assert(gameEngine.currentScreen === 'ai', "成功進入皇家結婚蛋糕疊疊樂競技場", "未能進入 AI 遊戲畫面");
+    this.assert(aiEngine.targetLayers === 5, "成功設定目標蛋糕高度為 5 層", `目標高度錯誤: ${aiEngine.targetLayers}`);
+    this.assert(aiEngine.aiThinkInterval !== null, "法國主廚皮埃爾思考/備料計時器成功啟動", "皮埃爾計時器未啟動");
+
+    // Check DOM structures
+    const pStack = document.getElementById('player-cake-layers');
+    const aiStack = document.getElementById('pierre-cake-layers');
+    this.assert(pStack !== null && aiStack !== null, "左右雙方皇家蛋糕展示台 DOM 結構健全", "找不到蛋糕塔容器");
+
+    // 測試教學安全閥 (Safety Valve): 模擬答錯觸發迷思膠囊與 AI 暫停
+    this.log("模擬學生答錯：測試教學安全閥機制...", 'info');
+    const wrongQ = aiEngine.currentQuestion;
+    if (wrongQ.type === 'classify') {
+      aiEngine.playerChoice = wrongQ.ans === 'true' ? 'mixed' : 'true';
+    } else {
+      const intBox = document.getElementById('ai-ans-int');
+      const numBox = document.getElementById('ai-ans-num');
+      if (intBox) intBox.value = '99';
+      if (numBox) numBox.value = '99';
+    }
+    aiEngine.submitAnswer();
+
+    this.assert(aiEngine.isPausedForSafety === true, "學生答錯觸發教學安全閥，皮埃爾計時器立即「暫停」，避免學生慌亂焦慮", "教學安全閥未成功暫停 AI 計時器！");
+    const pill = document.getElementById('ai-pill-feedback');
+    this.assert(!pill.classList.contains('hidden'), "輕量級迷思回饋膠囊順利彈出，給予具體教學提示", "找不到迷思回饋膠囊");
+
+    // 模擬學生閱讀提示後點擊繼續
+    aiEngine.resumeFromSafetyValve();
+    this.assert(aiEngine.isPausedForSafety === false, "學生點擊「我知道了」，安全閥解除並恢復主廚思考計時", "未能恢復計時器");
+
+    // 測試答對、堆疊與連擊 Combo 雙層加成
+    this.log("模擬學生連續答對：測試蛋糕堆疊與雙層加成...", 'info');
+    let answered = 0;
+    while (!aiEngine.isGameOver && answered < 8) {
+      if (!this.active) return;
+      answered++;
+      const curQ = aiEngine.currentQuestion;
+      if (curQ.type === 'classify') {
+        aiEngine.playerChoice = curQ.ans;
+      } else {
+        const intBox = document.getElementById('ai-ans-int');
+        const numBox = document.getElementById('ai-ans-num');
+        const denBox = document.getElementById('ai-ans-den');
+        if (intBox) intBox.value = curQ.ans.int;
+        if (numBox) numBox.value = curQ.ans.num;
+        if (denBox) denBox.value = curQ.ans.den;
+      }
+
+      const prevLayers = aiEngine.playerLayers;
+      aiEngine.submitAnswer();
+
+      if (aiEngine.comboCount >= 2) {
+        this.assert(aiEngine.playerLayers >= prevLayers + 1, `觸發 Combo x${aiEngine.comboCount}！蛋糕塔加疊推進（目前 ${aiEngine.playerLayers} 層）`, "Combo 加疊失敗");
+      }
+
+      await new Promise(r => setTimeout(r, 800));
+    }
+
+    // 驗證獲勝結算彈窗
+    const aiModal = document.getElementById('ai-gameover-modal');
+    this.assert(!aiModal.classList.contains('hidden'), "率先達成目標高度，成功彈出「👑 皇家特級甜點王」金色結算視窗！", "未彈出獲勝結算視窗");
+    
+    // 清理測試狀態返回大廳
+    aiEngine.toggleGameOverModal(false);
+    aiEngine.exitToHome();
+    this.assert(aiEngine.isGameOver === true, "挑戰結束後乾淨釋放計時器資源並安全返回大廳", "未正確釋放計時器");
   }
 };
 
-// ==================== 9. INITIALIZATION ====================
+// ==================== 10. INITIALIZATION ====================
 window.addEventListener('DOMContentLoaded', () => {
   // Init engines
   gameEngine.init();
   duelEngine.init();
+  aiEngine.init();
   playtestEngine.init();
   
   // Proactively run a silent audio init just in case
