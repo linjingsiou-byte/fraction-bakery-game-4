@@ -311,7 +311,9 @@ const VoiceManager = {
     };
     
     utterance.onerror = (e) => {
-      console.error("Speech error", e);
+      if (e.error !== 'canceled' && e.error !== 'interrupted') {
+        console.warn("Speech synthesis notice:", e.error || e);
+      }
       this.speaking = false;
       if (onEndCallback) onEndCallback();
     };
@@ -1183,6 +1185,7 @@ const RenderEngine = {
     container.innerHTML = '';
     
     const mainWrap = document.createElement('div');
+    mainWrap.className = 'level4-main-wrap';
     mainWrap.style.display = 'flex';
     mainWrap.style.alignItems = 'center';
     mainWrap.style.justifyContent = 'center';

@@ -1422,8 +1422,28 @@ button {
   color: var(--magic-gold);
 }
 
+/* Math mixed scaling in prose */
+.question-text .math-mixed {
+  font-size: 1.6rem;
+}
+.feedback-explanation .math-mixed {
+  font-size: 1.35rem;
+}
+.duel-q-text .math-mixed {
+  font-size: 1.45rem;
+}
+.borrow-step-card .math-mixed {
+  font-size: 1.65rem;
+}
+.borrow-math-summary .math-mixed {
+  font-size: 1.25rem;
+}
+
 /* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 900px) {
+  .app-container {
+    padding: 18px 14px;
+  }
   .game-layout {
     grid-template-columns: 1fr;
   }
@@ -1431,7 +1451,7 @@ button {
     grid-template-columns: 1fr;
   }
   .player-panel {
-    min-height: 480px;
+    min-height: 440px;
   }
   .mode-select-grid {
     grid-template-columns: 1fr;
@@ -1442,6 +1462,260 @@ button {
   }
   .pierre-center-panel {
     order: -1;
+  }
+}
+
+@media (max-width: 650px) {
+  .app-container {
+    padding: 10px 8px;
+    min-height: 100vh;
+  }
+  .glass-panel {
+    padding: 16px 12px;
+    border-radius: 18px;
+  }
+  .logo-container {
+    margin-bottom: 28px;
+  }
+  .logo-emoji {
+    font-size: 3.2rem;
+  }
+  .logo-container h1 {
+    font-size: 2.1rem;
+  }
+  .subtitle {
+    font-size: 1rem;
+  }
+  .header-credits {
+    font-size: 0.8rem !important;
+  }
+  .mode-card {
+    padding: 24px 16px;
+  }
+  .card-icon {
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+  }
+  .mode-card h2 {
+    font-size: 1.3rem;
+  }
+  
+  .screen-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    justify-content: space-between;
+  }
+  .screen-header h2 {
+    font-size: 1.25rem;
+  }
+  .round-progress {
+    font-size: 0.95rem;
+  }
+  .question-container {
+    padding: 10px 12px;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .question-text {
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+  .visual-area {
+    min-height: 250px;
+    padding: 10px 6px;
+  }
+  
+  /* Level 1 Packing action bar */
+  .pack-action-bar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .btn-magic-pack, .btn-magic-slice {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+  .pack-summary-badge {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+  }
+  
+  /* Level 2 Comparison responsive fix */
+  .comparison-plates {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .comparison-slot {
+    width: 52px;
+    height: 52px;
+    font-size: 1.8rem;
+    margin: 4px 0;
+  }
+  .comp-plate-card {
+    width: 100%;
+    gap: 6px;
+  }
+  .comp-plate-card .baking-plate {
+    width: 100px;
+    height: 100px;
+  }
+  .comp-plate-card .plate-cake-svg {
+    width: 85px;
+    height: 85px;
+  }
+  .btn-comparison-sign {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+
+  /* Level 4 Multiples responsive fix */
+  .level4-main-wrap {
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .multiples-grid {
+    grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)) !important;
+    max-height: 240px;
+    gap: 8px;
+    padding: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .multiple-baking-card {
+    padding: 8px 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .multiple-baking-card .baking-plate {
+    width: 90px;
+    height: 90px;
+  }
+  .multiple-baking-card .plate-cake-svg {
+    width: 76px;
+    height: 76px;
+  }
+  .integer-multiplication-symbol {
+    font-size: 1.8rem;
+    margin: 2px 0;
+  }
+  .integer-factor-display {
+    font-size: 2.2rem;
+  }
+
+  /* Level 3 Borrow Knife panel responsive fix */
+  .borrow-knife-panel {
+    padding: 12px 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .borrow-panel-title {
+    font-size: 1.02rem;
+  }
+  .borrow-steps-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+  .borrow-step-card {
+    padding: 10px 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .borrow-step-card .math-mixed {
+    font-size: 1.35rem;
+  }
+  .borrow-math-summary {
+    font-size: 0.92rem;
+    padding: 8px 10px;
+    line-height: 1.55;
+    word-break: break-word;
+  }
+  .borrow-math-summary .math-mixed {
+    font-size: 1.15rem;
+  }
+
+  /* General math-mixed font scaling in prose */
+  .question-text .math-mixed {
+    font-size: 1.35rem;
+  }
+  .feedback-explanation .math-mixed {
+    font-size: 1.2rem;
+  }
+  .duel-q-text .math-mixed {
+    font-size: 1.25rem;
+  }
+
+  /* Duel top bar & player panels */
+  .duel-top-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .duel-title-center {
+    font-size: 1.05rem;
+  }
+  .duel-limit-info {
+    font-size: 0.85rem;
+  }
+  .player-panel {
+    padding: 14px 10px;
+    min-height: auto;
+  }
+  .duel-keypad {
+    max-width: 290px;
+    gap: 4px;
+  }
+  .duel-key-btn {
+    padding: 6px 2px;
+    font-size: 1.05rem;
+  }
+
+  /* AI Challenge Arena */
+  .cake-arena {
+    padding: 10px 6px;
+    gap: 12px !important;
+  }
+  .cake-tower-stage {
+    min-height: 180px;
+  }
+  .cake-layers-stack {
+    max-height: 170px;
+  }
+  .pierre-speech-bubble {
+    width: 95%;
+    font-size: 0.88rem;
+    padding: 8px 10px;
+  }
+  .ai-workspace {
+    padding: 14px 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-container {
+    padding: 8px 4px;
+  }
+  .glass-panel {
+    padding: 12px 8px;
+    border-radius: 14px;
+  }
+  .comp-plate-card .baking-plate {
+    width: 85px;
+    height: 85px;
+  }
+  .comp-plate-card .plate-cake-svg {
+    width: 72px;
+    height: 72px;
+  }
+  .borrow-step-card .math-mixed {
+    font-size: 1.2rem;
+  }
+  .borrow-math-summary .math-mixed {
+    font-size: 1.05rem;
   }
 }
 
