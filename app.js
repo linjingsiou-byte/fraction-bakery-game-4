@@ -752,7 +752,7 @@ const RenderEngine = {
     } else {
       // Proper or Improper fraction (intPart === 0)
       const maxPlates = Math.ceil(numPart / denPart) || 1;
-      const platesToRender = Math.max(maxPlates, 2);
+      const platesToRender = maxPlates;
       let remaining = numPart;
       
       for (let i = 0; i < platesToRender; i++) {
