@@ -961,65 +961,66 @@ const RenderEngine = {
     `;
     overlay.appendChild(desc);
     
-    // SVG containing both overlays
+    // 逐盤重疊比對：第 k 盤同時疊上藍色（第一個分數）與橘色（第二個分數）的份量，
+    // 整數部分也逐盤呈現，避免只畫 1 盤造成「整數大的反而露出較少」的圖文矛盾。
     const overlapBox = document.createElement('div');
     overlapBox.className = 'overlap-container';
     
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute('class', 'overlap-cake-svg');
-    svg.setAttribute('viewBox', '0 0 100 100');
+    const totalA = f1.int * f1.den + f1.num;
+    const totalB = f2.int * f2.den + f2.num;
+    const plateCount = Math.max(1, Math.ceil(totalA / f1.den), Math.ceil(totalB / f2.den));
+    const SVG_NS = 'http://www.w3.org/2000/svg';
     
-    const cx = 50;
-    const cy = 50;
-    const r = 45;
-    
-    // Draw f1 slices (Blue overlay)
-    const drawOverlapSlices = (fVal, cssClass, sweepDir) => {
-      const den = fVal.den;
-      const totalParts = fVal.int * den + fVal.num;
-      const fractionVal = totalParts / den;
-      const angle = (2 * Math.PI) * (fractionVal % 1 === 0 && fractionVal > 0 ? 1 : (fractionVal % 1));
-      
-      if (fractionVal >= 1 && angle === 0) {
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute('cx', '50');
-        circle.setAttribute('cy', '50');
-        circle.setAttribute('r', `${cssClass === 'overlap-slice-a' ? 45 : 40}`);
-        circle.setAttribute('class', cssClass);
-        svg.appendChild(circle);
-      } else {
-        const wholes = Math.floor(fractionVal);
-        if (wholes > 0) {
-          const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          circle.setAttribute('cx', '50');
-          circle.setAttribute('cy', '50');
-          circle.setAttribute('r', `${cssClass === 'overlap-slice-a' ? 45 : 40}`);
-          circle.setAttribute('class', cssClass);
-          circle.style.opacity = '0.4';
-          svg.appendChild(circle);
-        }
-        
-        if (angle > 0) {
-          const x1 = cx + r * Math.cos(0);
-          const y1 = cy + r * Math.sin(0);
-          const x2 = cx + r * Math.cos(angle);
-          const y2 = cy + r * Math.sin(angle);
-          
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-          const largeArc = angle > Math.PI ? 1 : 0;
-          const dStr = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-          path.setAttribute('d', dStr);
-          path.setAttribute('class', cssClass);
-          svg.appendChild(path);
-        }
+    // 將第 k 盤的填滿比例 (0~1) 畫成扇形；滿盤畫整圓，0 不畫
+    const drawFill = (svg, ratio, cssClass, radius) => {
+      if (ratio <= 0) return;
+      if (ratio >= 1) {
+        const c = document.createElementNS(SVG_NS, 'circle');
+        c.setAttribute('cx', '50');
+        c.setAttribute('cy', '50');
+        c.setAttribute('r', String(radius));
+        c.setAttribute('class', cssClass);
+        svg.appendChild(c);
+        return;
       }
+      const angle = 2 * Math.PI * ratio;
+      const x2 = 50 + radius * Math.cos(angle);
+      const y2 = 50 + radius * Math.sin(angle);
+      const path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', `M 50 50 L ${50 + radius} 50 A ${radius} ${radius} 0 ${angle > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`);
+      path.setAttribute('class', cssClass);
+      svg.appendChild(path);
     };
     
-    // Draw both
-    drawOverlapSlices(f1, 'overlap-slice-a'); // Blue
-    drawOverlapSlices(f2, 'overlap-slice-b'); // Orange
+    for (let k = 0; k < plateCount; k++) {
+      const plateWrap = document.createElement('div');
+      plateWrap.className = 'overlap-plate';
+      
+      const svg = document.createElementNS(SVG_NS, 'svg');
+      svg.setAttribute('class', 'overlap-cake-svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      
+      const bg = document.createElementNS(SVG_NS, 'circle');
+      bg.setAttribute('cx', '50');
+      bg.setAttribute('cy', '50');
+      bg.setAttribute('r', '46');
+      bg.setAttribute('class', 'overlap-plate-bg');
+      svg.appendChild(bg);
+      
+      const ratioA = Math.min(1, Math.max(0, (totalA - k * f1.den) / f1.den));
+      const ratioB = Math.min(1, Math.max(0, (totalB - k * f2.den) / f2.den));
+      drawFill(svg, ratioA, 'overlap-slice-a', 45); // Blue
+      drawFill(svg, ratioB, 'overlap-slice-b', 40); // Orange
+      plateWrap.appendChild(svg);
+      
+      const cap = document.createElement('div');
+      cap.className = 'overlap-plate-caption';
+      cap.innerText = '第 ' + (k + 1) + ' 盤';
+      plateWrap.appendChild(cap);
+      
+      overlapBox.appendChild(plateWrap);
+    }
     
-    overlapBox.appendChild(svg);
     overlay.appendChild(overlapBox);
     
     // Close button
