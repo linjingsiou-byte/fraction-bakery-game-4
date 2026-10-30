@@ -30,7 +30,7 @@
 }
 
 body {
-  font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+  font-family: 'Outfit', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
   background: linear-gradient(135deg, var(--bg-dark-1) 0%, var(--bg-dark-2) 100%);
   color: var(--text-main);
   min-height: 100vh;

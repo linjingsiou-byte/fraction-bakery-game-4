@@ -277,12 +277,50 @@ const AudioSynth = {
     } catch (e) {
       console.warn("Failed to play audio", e);
     }
+  },
+
+  // 通用單音/拖曳音效備援產生器 (D5 音效防崩潰兜底)
+  playTone(freq = 440, duration = 0.12, type = 'sine') {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    try {
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch (e) {
+      console.warn("Failed to play tone", e);
+    }
   }
 };
 
 // ==================== 2. TTS VOICE MANAGER ====================
 const VoiceManager = {
   speaking: false,
+
+  /**
+   * 清洗語音文字：移除 HTML 標籤、過濾 Emoji、轉換斜線分數為國小朗讀格式
+   */
+  cleanSpeechText(rawText) {
+    if (!rawText) return '';
+    return rawText
+      .replace(/<[^>]+>/g, '')
+      .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+      .replace(/(\d+)\s*\/\s*(\d+)/g, '$2分之$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
   
   speak(text, onEndCallback = null) {
     if (!('speechSynthesis' in window)) {
@@ -293,8 +331,14 @@ const VoiceManager = {
     
     window.speechSynthesis.cancel(); // Stop any current speech
     
+    const cleaned = this.cleanSpeechText(text);
+    if (!cleaned) {
+      if (onEndCallback) onEndCallback();
+      return;
+    }
+    
     // Pedagogical adjustment: append buffer particle to prevent cutting off trailing words
-    const bufferedText = text.trim() + " 呢。";
+    const bufferedText = cleaned + " 呢。";
     
     const utterance = new SpeechSynthesisUtterance(bufferedText);
     utterance.lang = 'zh-TW';
@@ -1711,7 +1755,47 @@ const gameEngine = {
     if (!this._singleKeydownBound) {
       this._singleKeydownBound = true;
       window.addEventListener('keydown', (e) => {
+        // Modal & Overlay Escape key handler (D6 Accessibility)
+        if (e.key === 'Escape') {
+          const instructionModal = document.getElementById('instruction-modal');
+          if (instructionModal && !instructionModal.classList.contains('hidden')) {
+            gameEngine.toggleInstructionModal(false);
+            return;
+          }
+          const winnerModal = document.getElementById('winner-modal');
+          if (winnerModal && !winnerModal.classList.contains('hidden')) {
+            gameEngine.toggleWinnerModal(false);
+            return;
+          }
+          const aiModal = document.getElementById('ai-gameover-modal');
+          if (aiModal && !aiModal.classList.contains('hidden')) {
+            aiModal.classList.add('hidden');
+            return;
+          }
+          const overlapOverlay = document.querySelector('.overlap-overlay');
+          if (overlapOverlay) {
+            overlapOverlay.remove();
+            return;
+          }
+          const borrowPanel = document.getElementById('borrow-knife-animation');
+          if (borrowPanel) {
+            borrowPanel.remove();
+            return;
+          }
+        }
+
         if (this.currentScreen !== 'single') return;
+
+        // Enter key to submit answer
+        if (e.key === 'Enter') {
+          const submitBtn = document.getElementById('btn-submit-answer');
+          if (submitBtn && !submitBtn.disabled) {
+            AudioSynth.play('click');
+            gameEngine.submitAnswer();
+          }
+          return;
+        }
+
         const curInt = document.getElementById('ans-int');
         if (!curInt) return;
         if (e.key >= '0' && e.key <= '9') {
