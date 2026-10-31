@@ -785,10 +785,23 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px;
+  padding: 10px 6px;
   background: rgba(255,255,255,0.03);
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.05);
+}
+.multiple-baking-card .baking-plate {
+  width: 105px;
+  height: 105px;
+  margin-bottom: 6px;
+}
+.multiple-baking-card .plate-cake-svg {
+  width: 90px;
+  height: 90px;
+}
+/* 隱藏倍數卡片內重複的淺色「分母為 X」標籤，避免與下方題目分數「第 i 盤」疊字遮擋 */
+.multiple-baking-card .plate-label:not(.whole-label) {
+  display: none;
 }
 
 .integer-multiplication-symbol {
