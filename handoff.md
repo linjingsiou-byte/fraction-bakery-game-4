@@ -3,26 +3,25 @@
 > 任何 Agent、任何電腦接手前**必讀**；收工時**必更新**。本檔只放交接必需的精簡資訊，詳細脈絡放 Obsidian（若有 L3）。
  
 ## ⏯️ 目前做到哪
-完成「開發者試玩除錯面板平時 100% 對學生隱藏，僅在網址附帶 `?debug=1` 時顯現（v4.0.6）」並推播部署至 GitHub Pages！
-1. **開發者除錯面板權限與顯示機制優化（方案 A）**：
-   - 需求目標：學生課堂操作時，右下角不應常駐出現除錯面板小標籤（避免學生分心點擊），但需保留開發者與自動化測試腳本使用。
-   - 實作機制：
-     - 在 [index.css](file:///d:/Antigravity/02_教材與教具(互動網頁遊戲)/2026_四年級上學期_數學：分數/index.css) 中將 `.dev-panel` 預設樣式改為 `display: none;`，僅在帶有 `.dev-visible` 時設為 `display: flex;`。
-     - 在 [app.js](file:///d:/Antigravity/02_教材與教具(互動網頁遊戲)/2026_四年級上學期_數學：分數/app.js) 的 `playtestEngine.init()` 中讀取 URL 查詢字串與 Hash，只有當網址帶有 `?debug=1`、`?dev=1` 或 `#debug` 時才掛載 `.dev-visible` 顯現面板。
-     - 若執行 `runFullAutoTest()`，自動掛載 `.dev-visible`，確保自動化腳本能無縫呼叫。
-     - 在 [run_playtest.js](file:///d:/Antigravity/02_教材與教具(互動網頁遊戲)/2026_四年級上學期_數學：分數/run_playtest.js) 中加入 `?debug=1` 參數。
+完成「關卡 3 算式單列橫排重構與魔法借位切刀下移佈局（v4.0.7）」並推播部署至 GitHub Pages！
+1. **關卡 3 算式單列化與切刀按鈕下移**：
+   - 根因分析：原本天平、算式與切刀按鈕同屬於 `flex-direction: row` 的直接子元素，切刀按鈕搶佔右側空間，導致中間算式被擠壓折成兩行（減號後換行）。
+   - 修復成果：
+     - 在 [app.js](file:///d:/Antigravity/02_教材與教具(互動網頁遊戲)/2026_四年級上學期_數學：分數/app.js) 與 [index.css](file:///d:/Antigravity/02_教材與教具(互動網頁遊戲)/2026_四年級上學期_數學：分數/index.css) 中，建立專屬 `.l3-visual-wrapper` 與 `.l3-stage-row` 容器結構。
+     - 上半部：天平與算式水平並排，算式設定 `white-space: nowrap;` 強制排列為完整單列，字型採用自適應 `clamp(2rem, 3.2vw, 2.5rem)`。
+     - 下半部：將「🔪 魔法借位切刀示範（分子不夠減怎麼辦？）」按鈕下移至天平與算式的正下方中央。
+     - 切刀圖解展開：若點擊按鈕或答錯觸發，借位三步驟圖解面板在下方自然依序展開，不遮擋天平與算式。
 2. **全套測試雙驗證**：
-   - 獨立驗證腳本 `scratch/verify_debug_visibility.js`：確認一般開啟時 `display: none`（100% 隱藏），加 `?debug=1` 時 `display: flex`（正常顯現）。
    - `node qa-audit.js`：0 Critical、0 Warning 通過。
    - `node run_playtest.js`：Puppeteer Chrome 64/64 斷言 100% 通過。
-   - 資源版本號升級為 `v=4.0.6`。
+   - 資源版本號升級為 `v=4.0.7`。
  
 ## 🚦 目前狀態
-- **可運行狀態**：全功能健全、無任何 Bug。正式學生版畫面 100% 乾淨無開發者面板干擾。
+- **可運行狀態**：全功能健全、無任何 Bug。關卡 3 算式單列平整呈現，切刀按鈕優雅居中於下方。
 - **最新功能**：
-  1. 學生模式下右下角乾淨純淨，不顯示除錯面板。
-  2. 開發者或老師在網址後加上 `?debug=1` 即可呼叫除錯面板進行自動化試玩驗證。
-  3. `qa-audit.js` 與 `run_playtest.js` 64 項斷言全數通過。
+  1. 關卡 3 算式完整呈現於單一橫列（$3\frac{2}{7} - 1\frac{5}{7} = ?$），絕不折行。
+  2. 借位切刀示範按鈕下移，畫面視線重心流暢自然。
+  3. 雙測試 100% 綠燈認證。
  
 ## ➡️ 下一步
 1. 於平板（iPad）與大螢幕觸控電視進行實際課堂試教，驗證學童對全新「逐盤重疊比對」與「借位切刀」的直觀理解。
@@ -35,6 +34,6 @@
 - 專案依賴 Puppeteer 執行本地端測試（`node run_playtest.js`），執行前請確認已安裝 Chrome。
  
 ## 🕐 最後更新
-- 時間：2026-10-31 22:31
+- 時間：2026-10-31 22:46
 - 更新者：Antigravity @ LAPTOP-C73KGKMS
 - Git push：已推播至 `origin/main`（GitHub Pages: `linjingsiou-byte/fraction-bakery-game-4`）

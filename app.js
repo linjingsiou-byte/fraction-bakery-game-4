@@ -1140,7 +1140,8 @@ const RenderEngine = {
       </div>
     `;
 
-    parentContainer.appendChild(panel);
+    const targetContainer = parentContainer.querySelector('.l3-visual-wrapper') || parentContainer;
+    targetContainer.appendChild(panel);
 
     // Draw the sliced cake SVG inside step 2
     this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, `1 切成 ${MathRenderer.render(0, den, den)}`);
@@ -1608,30 +1609,38 @@ const gameEngine = {
     
     // Level 3: Addition & Subtraction
     else if (this.currentLevel === 3) {
+      const l3Wrapper = document.createElement('div');
+      l3Wrapper.className = 'l3-visual-wrapper';
+
+      // Stage row: Scale visual on left, math equation on right
+      const stageRow = document.createElement('div');
+      stageRow.className = 'l3-stage-row';
+
       // Scale visual
       const scaleDiv = document.createElement('div');
       scaleDiv.id = 'l3-scale-box';
-      visualArea.appendChild(scaleDiv);
-      RenderEngine.renderLevel3Scale('l3-scale-box', 0);
+      stageRow.appendChild(scaleDiv);
       
-      // Math equation display
+      // Math equation display (rendered as a single horizontal line)
       const eqText = document.createElement('div');
-      eqText.style.fontSize = '2.5rem';
-      eqText.style.marginTop = '16px';
+      eqText.className = 'l3-equation-text';
       
       const opText = q.data.op === '+' ? '＋' : '－';
       eqText.innerHTML = `
         ${MathRenderer.render(q.data.f1.int, q.data.f1.num, q.data.f1.den)}
-        ${opText}
+        <span class="math-op-sign">${opText}</span>
         ${MathRenderer.render(q.data.f2.int, q.data.f2.num, q.data.f2.den)}
-        ＝ ？
+        <span class="math-equal-sign">＝</span>
+        <span class="math-question-mark">？</span>
       `;
-      visualArea.appendChild(eqText);
+      stageRow.appendChild(eqText);
+      l3Wrapper.appendChild(stageRow);
 
       // Optimization 2: Add interactive Borrow Knife Demo button when subtraction needs borrowing
+      // Placed below the equation row (向下移動)
       if (q.data.op === '-' && q.data.f1.num < q.data.f2.num) {
         const borrowWrap = document.createElement('div');
-        borrowWrap.className = 'borrow-helper-btn-wrap';
+        borrowWrap.className = 'borrow-helper-btn-wrap l3-borrow-bottom';
         const borrowBtn = document.createElement('button');
         borrowBtn.type = 'button';
         borrowBtn.className = 'btn-borrow-demo';
@@ -1642,8 +1651,11 @@ const gameEngine = {
           RenderEngine.showLevel3BorrowAnimation(q.data.f1, q.data.f2, 'visual-interaction-area');
         });
         borrowWrap.appendChild(borrowBtn);
-        visualArea.appendChild(borrowWrap);
+        l3Wrapper.appendChild(borrowWrap);
       }
+      
+      visualArea.appendChild(l3Wrapper);
+      RenderEngine.renderLevel3Scale('l3-scale-box', 0);
       
       // Answer Inputs (Whole number, Numerator, Denominator) with Virtual Keypad
       inputsContainer.innerHTML = `
@@ -3866,6 +3878,16 @@ const playtestEngine = {
 };
 
 // ==================== 10. INITIALIZATION ====================
+// Expose engines globally
+window.gameEngine = gameEngine;
+window.duelEngine = duelEngine;
+window.aiEngine = aiEngine;
+window.playtestEngine = playtestEngine;
+window.QuestionGenerator = QuestionGenerator;
+window.questionBank = QuestionGenerator.levels;
+window.MathRenderer = MathRenderer;
+window.RenderEngine = RenderEngine;
+
 window.addEventListener('DOMContentLoaded', () => {
   // Init engines
   gameEngine.init();

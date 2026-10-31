@@ -2213,11 +2213,70 @@ button {
   100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
-/* Optimization 2: Level 3 Subtraction Borrow Knife Animation */
+/* Optimization 2: Level 3 Subtraction Borrow Knife Animation & Single Row Layout */
+.l3-visual-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 14px;
+}
+
+.l3-stage-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+#l3-scale-box {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#l3-scale-box .balance-scale-svg {
+  width: 100%;
+  max-width: 220px;
+  height: 150px;
+}
+
+.l3-equation-text {
+  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  font-weight: 700;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap; /* 算式排為一列，絕不換行 */
+  flex-shrink: 0;
+}
+
+.l3-equation-text .math-op-sign,
+.l3-equation-text .math-equal-sign {
+  color: var(--text-light);
+  margin: 0 4px;
+}
+
+.l3-equation-text .math-question-mark {
+  color: var(--magic-gold);
+  font-weight: 800;
+}
+
 .borrow-helper-btn-wrap {
   margin-top: 10px;
   display: flex;
   justify-content: center;
+  width: 100%;
+}
+
+.borrow-helper-btn-wrap.l3-borrow-bottom {
+  margin-top: 8px;
 }
 .btn-borrow-demo {
   background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
