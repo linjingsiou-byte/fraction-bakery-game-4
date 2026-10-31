@@ -698,7 +698,7 @@ const RenderEngine = {
     const isWhole = (totalSlices === 1) || (customLabel && customLabel.includes('完整'));
     label.className = `plate-label ${isWhole ? 'whole-label' : ''}`;
     if (customLabel !== null && customLabel !== undefined) {
-      label.innerText = customLabel;
+      label.innerHTML = customLabel;
     } else if (totalSlices === 1) {
       label.innerText = '1 個完整蛋糕';
     } else {
@@ -874,7 +874,7 @@ const RenderEngine = {
           isSliced: true,
           filledSlices: rem,
           totalSlices: denPart,
-          label: `散裝 ${rem}/${denPart}`,
+          label: `散裝 ${MathRenderer.render(0, rem, denPart)}`,
           justPacked: false
         });
       }
@@ -888,7 +888,7 @@ const RenderEngine = {
           p.isSliced = true;
           p.totalSlices = denPart;
           p.filledSlices = denPart;
-          p.label = `切成 ${denPart} 份 (${denPart}/${denPart})`;
+          p.label = `切成 ${denPart} 份（${MathRenderer.render(0, denPart, denPart)}）`;
           p.justPacked = false;
         }
       });
@@ -913,7 +913,7 @@ const RenderEngine = {
             p.isSliced = true;
             p.totalSlices = denPart;
             p.filledSlices = denPart;
-            p.label = `切成 ${denPart} 份 (${denPart}/${denPart})`;
+            p.label = `切成 ${denPart} 份（${MathRenderer.render(0, denPart, denPart)}）`;
             p.justPacked = false;
             redrawAll();
             notifyStateChange();
@@ -935,7 +935,7 @@ const RenderEngine = {
               p.label = '📦 1 個完整蛋糕';
               p.justPacked = true;
             } else {
-              p.label = `切成 ${denPart} 份 (${newFilled}/${denPart})`;
+              p.label = `切成 ${denPart} 份（${MathRenderer.render(0, newFilled, denPart)}）`;
             }
             redrawAll();
             notifyStateChange();
@@ -1143,7 +1143,7 @@ const RenderEngine = {
     parentContainer.appendChild(panel);
 
     // Draw the sliced cake SVG inside step 2
-    this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, `1 切成 ${den}/${den}`);
+    this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, `1 切成 ${MathRenderer.render(0, den, den)}`);
   },
   
   /**

@@ -547,6 +547,23 @@ button {
   font-size: 0.8rem;
   color: var(--text-muted);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.plate-label .math-frac {
+  font-size: 0.82em;
+  margin: 0 1px;
+  vertical-align: middle;
+}
+.plate-label .cell-num {
+  min-width: 14px;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 0px;
+}
+.plate-label .cell-den {
+  min-width: 14px;
+  padding-top: 0px;
 }
 .plate-label.whole-label {
   background: rgba(255, 215, 0, 0.15);
