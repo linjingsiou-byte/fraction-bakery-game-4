@@ -3298,6 +3298,15 @@ const playtestEngine = {
   
   init() {
     this.logEl = document.getElementById('test-logs');
+    const panel = document.getElementById('dev-playtest-panel');
+    if (!panel) return;
+    
+    // Check URL parameters or hash for debug/dev mode (?debug=1, ?dev=1, #debug)
+    const params = new URLSearchParams(window.location.search);
+    const isDebug = params.has('debug') || params.has('dev') || window.location.hash.includes('debug');
+    if (isDebug) {
+      panel.classList.add('dev-visible');
+    }
   },
   
   togglePanel() {
@@ -3462,9 +3471,12 @@ const playtestEngine = {
     document.getElementById('btn-run-all-tests').classList.add('hidden');
     document.getElementById('btn-stop-tests').classList.remove('hidden');
     
-    // Ensure panel is open during test
+    // Ensure panel is visible and open during test
     const panel = document.getElementById('dev-playtest-panel');
-    if (panel.classList.contains('closed')) this.togglePanel();
+    if (panel) {
+      panel.classList.add('dev-visible');
+      if (panel.classList.contains('closed')) this.togglePanel();
+    }
     
     this.log("開始執行全自動試玩除錯程序...", 'info');
     

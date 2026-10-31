@@ -1349,6 +1349,7 @@ button {
 
 /* ==================== DEVELOPER PLAYTEST PANEL ==================== */
 .dev-panel {
+  display: none; /* 預設對一般玩家與學生完全隱藏，僅在 ?debug=1 模式下顯示 */
   position: fixed;
   bottom: 0;
   right: 20px;
@@ -1359,11 +1360,13 @@ button {
   border-bottom: none;
   border-radius: 16px 16px 0 0;
   z-index: 1000;
-  display: flex;
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
   font-family: Consolas, Monaco, monospace;
+}
+.dev-panel.dev-visible {
+  display: flex;
 }
 .dev-panel.closed {
   transform: translateY(calc(100% - 40px));

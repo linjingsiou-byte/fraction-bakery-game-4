@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer-core');
 const path = require('path');
 
 const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const htmlPath = 'file:///' + path.resolve(__dirname, 'index.html').replace(/\\/g, '/');
+const htmlPath = 'file:///' + path.resolve(__dirname, 'index.html').replace(/\\/g, '/') + '?debug=1';
 
 (async () => {
   console.log(`Launching Chrome from: ${chromePath}`);
