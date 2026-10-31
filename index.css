@@ -2348,6 +2348,12 @@ button {
   animation: knifeChop 0.9s ease-in-out infinite alternate;
   margin: 4px 0;
 }
+#borrow-sliced-cake-demo {
+  margin: 4px 0 10px 0;
+}
+#borrow-sliced-cake-demo .plate-label {
+  display: none !important;
+}
 @keyframes knifeChop {
   0% { transform: translateY(-6px) rotate(-20deg); }
   100% { transform: translateY(6px) rotate(15deg) scale(1.12); }

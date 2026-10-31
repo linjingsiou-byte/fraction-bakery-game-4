@@ -693,18 +693,20 @@ const RenderEngine = {
     
     div.appendChild(svg);
     
-    // Add text label under plate
-    const label = document.createElement('div');
-    const isWhole = (totalSlices === 1) || (customLabel && customLabel.includes('完整'));
-    label.className = `plate-label ${isWhole ? 'whole-label' : ''}`;
-    if (customLabel !== null && customLabel !== undefined) {
-      label.innerHTML = customLabel;
-    } else if (totalSlices === 1) {
-      label.innerText = '1 個完整蛋糕';
-    } else {
-      label.innerText = `分母為 ${totalSlices}`;
+    // Add text label under plate (skip if customLabel is explicitly empty or false)
+    if (customLabel !== '' && customLabel !== false) {
+      const label = document.createElement('div');
+      const isWhole = (totalSlices === 1) || (customLabel && customLabel.includes('完整'));
+      label.className = `plate-label ${isWhole ? 'whole-label' : ''}`;
+      if (customLabel !== null && customLabel !== undefined) {
+        label.innerHTML = customLabel;
+      } else if (totalSlices === 1) {
+        label.innerText = '1 個完整蛋糕';
+      } else {
+        label.innerText = `分母為 ${totalSlices}`;
+      }
+      div.appendChild(label);
     }
-    div.appendChild(label);
     
     container.appendChild(div);
   },
@@ -1143,8 +1145,8 @@ const RenderEngine = {
     const targetContainer = parentContainer.querySelector('.l3-visual-wrapper') || parentContainer;
     targetContainer.appendChild(panel);
 
-    // Draw the sliced cake SVG inside step 2
-    this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, `1 切成 ${MathRenderer.render(0, den, den)}`);
+    // Draw the sliced cake SVG inside step 2 (省略重複的底盤標籤，避免與下方說明文字重複遮擋)
+    this.drawCakeSVG('borrow-sliced-cake-demo', den, den, false, null, '');
   },
   
   /**
