@@ -1174,7 +1174,8 @@ button {
   box-shadow: 0 0 12px var(--magic-gold-glow) !important;
 }
 
-.duel-keypad {
+.duel-keypad,
+.duel-virtual-keypad {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
