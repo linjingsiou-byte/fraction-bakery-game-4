@@ -1234,15 +1234,10 @@ const RenderEngine = {
     
     const mainWrap = document.createElement('div');
     mainWrap.className = 'level4-main-wrap';
-    mainWrap.style.display = 'flex';
-    mainWrap.style.alignItems = 'center';
-    mainWrap.style.justifyContent = 'center';
-    mainWrap.style.width = '100%';
     
-    // Left: grid showing repeating plates
+    // Top: grid showing repeating plates (具體表徵)
     const grid = document.createElement('div');
     grid.className = 'multiples-grid';
-    grid.style.flexGrow = '1';
     
     for (let i = 0; i < factor; i++) {
       const card = document.createElement('div');
@@ -1254,8 +1249,7 @@ const RenderEngine = {
       card.appendChild(pDiv);
       
       const label = document.createElement('div');
-      label.style.fontSize = '0.9rem';
-      label.style.marginTop = '6px';
+      label.className = 'plate-fraction-sub';
       label.innerHTML = `第 ${i+1} 盤: ${MathRenderer.render(f1.int, f1.num, f1.den)}`;
       card.appendChild(label);
       
@@ -1264,17 +1258,17 @@ const RenderEngine = {
     
     mainWrap.appendChild(grid);
     
-    // Middle: Multiplication symbol
-    const multSym = document.createElement('div');
-    multSym.className = 'integer-multiplication-symbol';
-    multSym.innerText = '×';
-    mainWrap.appendChild(multSym);
-    
-    // Right: factor number display
-    const factorDisp = document.createElement('div');
-    factorDisp.className = 'integer-factor-display';
-    factorDisp.innerText = factor;
-    mainWrap.appendChild(factorDisp);
+    // Bottom (下一列): Complete multiplication equation (完整數學算式)
+    const eqRow = document.createElement('div');
+    eqRow.className = 'l4-equation-text';
+    eqRow.innerHTML = `
+      ${MathRenderer.render(f1.int, f1.num, f1.den)}
+      <span class="math-op-sign">×</span>
+      <span class="math-factor-num">${factor}</span>
+      <span class="math-equal-sign">＝</span>
+      <span class="math-question-mark">？</span>
+    `;
+    mainWrap.appendChild(eqRow);
     
     container.appendChild(mainWrap);
     
@@ -1999,7 +1993,7 @@ const gameEngine = {
         if (denVal === q.data.f1.den * q.data.factor) {
           explanation = "不對喔！乘以整數代表連續相加，分母大小（切塊大小）是保持不變的！我們只要把分子乘上整數倍數就可以了喔！";
         } else {
-          explanation = `配方不對喔！乘以 ${q.data.factor} 等於將分子乘以 ${q.data.factor}，分母保持不變。所以計算結果應該是 ${MathRenderer.render(q.ans.int, q.ans.num, q.ans.den)}。`;
+          explanation = `配方不對喔！${MathRenderer.render(q.data.f1.int, q.data.f1.num, q.data.f1.den)} × ${q.data.factor} 等於將分子乘以 ${q.data.factor}，分母保持不變。所以計算結果應該是 ${MathRenderer.render(q.ans.int, q.ans.num, q.ans.den)}。`;
         }
       }
       
