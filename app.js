@@ -3797,6 +3797,7 @@ const playtestEngine = {
     // Switch to AI setup
     gameEngine.switchScreen('ai-setup');
     this.assert(gameEngine.currentScreen === 'ai-setup', "成功切換至單人 AI 挑戰賽設定大廳", "無法切換至 AI 設定大廳");
+    this.assert(document.getElementById('ai-setup-screen').getBoundingClientRect().height > 0, "AI 設定大廳真實可見且尺寸正常", "AI 設定大廳不可見（尺寸為0或被隱藏）");
 
     // Configure challenge: Level 1, easy, 5 layers target
     aiEngine.selectLevel(1);
@@ -3805,6 +3806,7 @@ const playtestEngine = {
     
     aiEngine.startChallenge();
     this.assert(gameEngine.currentScreen === 'ai', "成功進入皇家結婚蛋糕疊疊樂競技場", "未能進入 AI 遊戲畫面");
+    this.assert(document.getElementById('ai-screen').getBoundingClientRect().height > 0, "AI 挑戰賽競技場真實可見且尺寸正常", "AI 競技場不可見（尺寸為0或被隱藏）");
     this.assert(aiEngine.targetLayers === 5, "成功設定目標蛋糕高度為 5 層", `目標高度錯誤: ${aiEngine.targetLayers}`);
     this.assert(aiEngine.aiThinkInterval !== null, "法國主廚皮埃爾思考/備料計時器成功啟動", "皮埃爾計時器未啟動");
 

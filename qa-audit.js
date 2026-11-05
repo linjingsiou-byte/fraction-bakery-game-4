@@ -283,6 +283,13 @@ if (!RenderEngine) {
 }
 
 // ==================== D4: 狀態機與計時器生命週期 ====================
+// 檢查 HTML 中所有 <section> 標籤開閉是否嚴格平衡
+const openSections = (htmlCode.match(/<section\b/gi) || []).length;
+const closeSections = (htmlCode.match(/<\/section>/gi) || []).length;
+if (openSections !== closeSections) {
+  report.critical.push({ category: 'D4_生命週期', location: 'index.html', title: `<section> 標籤開閉不對稱！開: ${openSections}, 閉: ${closeSections}，可能導致畫面被嵌套隱藏！` });
+}
+
 // 靜態掃描未定義方法呼叫
 const knownObjects = { AudioSynth, VoiceManager, MathRenderer, RenderEngine, QuestionGenerator, gameEngine, duelEngine, aiEngine, playtestEngine };
 const methodRegex = /\b(AudioSynth|VoiceManager|MathRenderer|RenderEngine|QuestionGenerator|gameEngine|duelEngine|aiEngine|playtestEngine)\.([a-zA-Z0-9_]+)\s*\(/g;
