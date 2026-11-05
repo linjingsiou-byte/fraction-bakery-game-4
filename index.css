@@ -1898,14 +1898,182 @@ button {
 }
 
 /* Cake Arena Layout */
+.ai-challenge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
 .cake-arena {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr 1fr;
-  gap: 20px;
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin-bottom: 20px;
   padding: 18px;
-  min-height: 380px;
+}
+
+.towers-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  #ai-screen {
+    max-width: 1240px;
+    margin: 0 auto;
+  }
+  .duel-top-bar {
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  .ai-challenge-container {
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.85fr !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+  }
+  
+  /* 左側：皇家蛋糕競技場 */
+  .cake-arena {
+    margin-bottom: 0 !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    min-height: 520px !important;
+  }
+  
+  /* 頂部皮埃爾狀態橫條 */
+  .pierre-center-panel {
+    order: -1 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 14px !important;
+    gap: 12px !important;
+    background: rgba(0, 0, 0, 0.25) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .pierre-portrait {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+  .pierre-face-emoji {
+    font-size: 1.6rem !important;
+  }
+  .pierre-name {
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
+  }
+  .pierre-speech-bubble {
+    margin: 0 !important;
+    font-size: 0.85rem !important;
+    padding: 5px 12px !important;
+    flex-grow: 1 !important;
+    max-width: 250px !important;
+    text-align: center !important;
+  }
+  .pierre-speech-bubble::before,
+  .bubble-arrow {
+    display: none !important;
+  }
+  .pierre-progress-box {
+    margin: 0 !important;
+    min-width: 140px !important;
+    flex-shrink: 0 !important;
+  }
+  .pierre-status-caption,
+  .pierre-progress-header {
+    font-size: 0.72rem !important;
+  }
+
+  /* 雙塔並排容器 */
+  .towers-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    flex-grow: 1 !important;
+  }
+  .cake-tower-card {
+    padding: 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  .tower-header {
+    padding-bottom: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  .tower-avatar {
+    font-size: 1.4rem !important;
+  }
+  .tower-owner {
+    font-size: 0.85rem !important;
+  }
+  .tower-layer-count {
+    font-size: 1.05rem !important;
+  }
+  .cake-tower-stage {
+    min-height: 280px !important;
+    flex-grow: 1 !important;
+  }
+  .cake-layers-stack {
+    max-height: 250px !important;
+  }
+
+  /* 右側：答題工作區 */
+  .ai-workspace {
+    margin-bottom: 0 !important;
+    padding: 14px 16px !important;
+    min-height: 520px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+  .duel-question-box {
+    margin-bottom: 8px !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+  }
+  .duel-q-text {
+    font-size: 0.95rem !important;
+  }
+  .duel-visual-area {
+    min-height: 120px !important;
+    margin: 6px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .duel-input-area {
+    margin-top: 6px !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .duel-keypad {
+    margin-top: 4px !important;
+    gap: 4px !important;
+  }
+  .duel-key-btn {
+    padding: 6px 0 !important;
+    font-size: 1rem !important;
+  }
+  #ai-submit-btn {
+    width: 100% !important;
+    max-width: 260px !important;
+    padding: 10px 16px !important;
+    font-size: 1.05rem !important;
+  }
 }
 
 .cake-tower-card {

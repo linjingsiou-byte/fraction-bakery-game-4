@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="index.css?v=4.0.11">
+  <link rel="stylesheet" href="index.css?v=4.0.12">
 </head>
 <body>
   <!-- Background magic stars decoration -->
@@ -349,94 +349,100 @@
         </div>
       </div>
       
-      <!-- 皇家蛋糕塔競技台 (Side-by-side Cake Towers) -->
-      <div class="cake-arena glass-panel">
-        <!-- 玩家蛋糕塔 (左側) -->
-        <div class="cake-tower-card player-tower-card">
-          <div class="tower-header">
-            <span class="tower-avatar">🧑‍🍳</span>
-            <div class="tower-meta">
-              <span class="tower-owner">你的蛋糕塔</span>
-              <span class="tower-layer-count"><strong id="player-layers-val">0</strong> / <span id="player-layers-max">10</span> 層</span>
+      <!-- 挑戰主容器：桌機/筆電採左右並排（左戰況雙塔、右作答區），手機自適應堆疊 -->
+      <div class="ai-challenge-container">
+        <!-- 皇家蛋糕塔競技台 (左側戰況區) -->
+        <div class="cake-arena glass-panel">
+          <!-- 中央皮埃爾競技狀態與對話 (頂部橫幅) -->
+          <div class="pierre-center-panel">
+            <div class="pierre-portrait">
+              <div class="pierre-face-emoji" id="pierre-emoji">👨‍🍳</div>
+              <div class="pierre-name">主廚皮埃爾</div>
             </div>
-            <div id="player-combo-badge" class="combo-badge hidden">🔥 Combo x2! +2層</div>
+
+            <div class="pierre-speech-bubble" id="pierre-bubble">
+              <span class="bubble-arrow"></span>
+              <p id="pierre-speech-text">Bonjour! 準備好見識皇家主廚的手藝了嗎？</p>
+            </div>
+
+            <!-- 主廚思考/備料進度條 -->
+            <div class="pierre-progress-box">
+              <div class="pierre-progress-header">
+                <span id="pierre-status-icon">⏳</span>
+                <span id="pierre-status-desc">皮埃爾正在揉麵糰...</span>
+                <span id="safety-valve-badge" class="safety-valve-badge hidden">⏸️ 主廚暫停中</span>
+              </div>
+              <div class="pierre-progress-bar">
+                <div class="pierre-progress-fill" id="pierre-progress-fill"></div>
+              </div>
+            </div>
           </div>
-          <div class="cake-tower-stage" id="player-cake-stage">
-            <div class="crown-topper hidden" id="player-crown">👑</div>
-            <div class="cake-layers-stack" id="player-cake-layers">
-              <!-- Dynamically stacked cake tiers -->
+
+          <!-- 雙方蛋糕塔並排展示區 -->
+          <div class="towers-row">
+            <!-- 玩家蛋糕塔 (左側) -->
+            <div class="cake-tower-card player-tower-card">
+              <div class="tower-header">
+                <span class="tower-avatar">🧑‍🍳</span>
+                <div class="tower-meta">
+                  <span class="tower-owner">你的蛋糕塔</span>
+                  <span class="tower-layer-count"><strong id="player-layers-val">0</strong> / <span id="player-layers-max">10</span> 層</span>
+                </div>
+                <div id="player-combo-badge" class="combo-badge hidden">🔥 Combo x2! +2層</div>
+              </div>
+              <div class="cake-tower-stage" id="player-cake-stage">
+                <div class="crown-topper hidden" id="player-crown">👑</div>
+                <div class="cake-layers-stack" id="player-cake-layers">
+                  <!-- Dynamically stacked cake tiers -->
+                </div>
+                <div class="cake-pedestal">🏛️ 皇家金盤</div>
+              </div>
             </div>
-            <div class="cake-pedestal">🏛️ 皇家金盤</div>
+
+            <!-- 皮埃爾蛋糕塔 (右側) -->
+            <div class="cake-tower-card pierre-tower-card">
+              <div class="tower-header">
+                <span class="tower-avatar">👨‍🍳</span>
+                <div class="tower-meta">
+                  <span class="tower-owner">皮埃爾的蛋糕塔</span>
+                  <span class="tower-layer-count"><strong id="pierre-layers-val">0</strong> / <span id="pierre-layers-max">10</span> 層</span>
+                </div>
+              </div>
+              <div class="cake-tower-stage" id="pierre-cake-stage">
+                <div class="crown-topper hidden" id="pierre-crown">👑</div>
+                <div class="cake-layers-stack" id="pierre-cake-layers">
+                  <!-- Dynamically stacked cake tiers -->
+                </div>
+                <div class="cake-pedestal">🏛️ 巴黎銀盤</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 中央皮埃爾競技狀態與對話 (中央) -->
-        <div class="pierre-center-panel">
-          <div class="pierre-portrait">
-            <div class="pierre-face-emoji" id="pierre-emoji">👨‍🍳</div>
-            <div class="pierre-name">主廚皮埃爾</div>
+        <!-- 學生答題工作區 (右側作答區) -->
+        <div class="ai-workspace glass-panel">
+          <div class="duel-question-box">
+            <button class="btn-sound-small" onclick="aiEngine.speakCurrentQuestion()">🔊 讀題</button>
+            <div id="ai-question-text" class="duel-q-text">載入題目中...</div>
           </div>
-
-          <div class="pierre-speech-bubble" id="pierre-bubble">
-            <span class="bubble-arrow"></span>
-            <p id="pierre-speech-text">Bonjour! 準備好見識皇家主廚的手藝了嗎？</p>
+          
+          <div id="ai-visual-area" class="duel-visual-area"></div>
+          
+          <div class="duel-input-area">
+            <div id="ai-inputs" class="inputs-container small-inputs"></div>
+            <button id="ai-submit-btn" class="btn-primary-small" onclick="aiEngine.submitAnswer()">提交配方 🎂</button>
           </div>
-
-          <!-- 主廚思考/備料進度條 -->
-          <div class="pierre-progress-box">
-            <div class="pierre-progress-header">
-              <span id="pierre-status-icon">⏳</span>
-              <span id="pierre-status-desc">皮埃爾正在揉麵糰...</span>
-              <span id="safety-valve-badge" class="safety-valve-badge hidden">⏸️ 主廚暫停中</span>
+          
+          <div id="ai-feedback" class="duel-feedback hidden"></div>
+          
+          <!-- 教學安全閥：迷思回饋膠囊 -->
+          <div id="ai-pill-feedback" class="duel-pill-feedback hidden">
+            <div class="pill-content">
+              <span class="pill-icon">💡</span>
+              <div class="pill-text" id="ai-pill-text">提示文字</div>
             </div>
-            <div class="pierre-progress-bar">
-              <div class="pierre-progress-fill" id="pierre-progress-fill"></div>
-            </div>
+            <button class="btn-pill-resume" onclick="aiEngine.resumeFromSafetyValve()">我知道了，繼續挑戰！▶️</button>
           </div>
-        </div>
-
-        <!-- 皮埃爾蛋糕塔 (右側) -->
-        <div class="cake-tower-card pierre-tower-card">
-          <div class="tower-header">
-            <span class="tower-avatar">👨‍🍳</span>
-            <div class="tower-meta">
-              <span class="tower-owner">皮埃爾的蛋糕塔</span>
-              <span class="tower-layer-count"><strong id="pierre-layers-val">0</strong> / <span id="pierre-layers-max">10</span> 層</span>
-            </div>
-          </div>
-          <div class="cake-tower-stage" id="pierre-cake-stage">
-            <div class="crown-topper hidden" id="pierre-crown">👑</div>
-            <div class="cake-layers-stack" id="pierre-cake-layers">
-              <!-- Dynamically stacked cake tiers -->
-            </div>
-            <div class="cake-pedestal">🏛️ 巴黎銀盤</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 學生答題工作區 -->
-      <div class="ai-workspace glass-panel">
-        <div class="duel-question-box">
-          <button class="btn-sound-small" onclick="aiEngine.speakCurrentQuestion()">🔊 讀題</button>
-          <div id="ai-question-text" class="duel-q-text">載入題目中...</div>
-        </div>
-        
-        <div id="ai-visual-area" class="duel-visual-area"></div>
-        
-        <div class="duel-input-area">
-          <div id="ai-inputs" class="inputs-container small-inputs"></div>
-          <button id="ai-submit-btn" class="btn-primary-small" onclick="aiEngine.submitAnswer()">提交配方 🎂</button>
-        </div>
-        
-        <div id="ai-feedback" class="duel-feedback hidden"></div>
-        
-        <!-- 教學安全閥：迷思回饋膠囊 -->
-        <div id="ai-pill-feedback" class="duel-pill-feedback hidden">
-          <div class="pill-content">
-            <span class="pill-icon">💡</span>
-            <div class="pill-text" id="ai-pill-text">提示文字</div>
-          </div>
-          <button class="btn-pill-resume" onclick="aiEngine.resumeFromSafetyValve()">我知道了，繼續挑戰！▶️</button>
         </div>
       </div>
     </section>
@@ -523,6 +529,6 @@
   </div>
 
   <!-- Javascript Modules -->
-  <script src="app.js?v=4.0.11"></script>
+  <script src="app.js?v=4.0.12"></script>
 </body>
 </html>
